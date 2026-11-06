@@ -1,1 +1,3 @@
 # sinceai-dna
+
+**DNA Digital Security Assistant** — Next.js webapp in [`webapp/`](webapp/README.md): a deterministic, prompt-injection-immune assistant that turns a suspicious message, call, link or device event into one clear, proportionate next step for consumers and small businesses (fi/en/sv). Includes the call-shield demo (detect → notify → auto-save → one-click block/report), a chat assistant with consent-gated signals and decisive twin questions, and eval tooling that produces `dev-submissions.jsonl` / `test_predictions.jsonl` (single-turn dev pass 79.1 % vs 60.5 % rules baseline; see `webapp/README.md`).
