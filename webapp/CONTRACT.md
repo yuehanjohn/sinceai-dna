@@ -31,6 +31,31 @@ Response:
 step: `{ "type": "question", "text": "...", "topics": ["code_shared"] }` or
 `{ "type": "consent_request", "fields": ["device.recent_app_installs"], "text": "..." }`.
 
+`POST /api/shield`
+
+Request: `{ action, number, eventId, actorId?, auto? }` with action one of
+`block_device | save_number | block_and_save | report_operator | report_traficom | evidence_pack`.
+Outbound report actions generate the matching structured draft (operator /
+Traficom / police, in the event's language) server-side from the engine
+decision. Response: `{ entry: { action, number, eventId, status, at }, reportId?, draft?, standing }`.
+A suspended account gets `403` on outbound report actions. `GET /api/shield`
+returns `{ entries, saved, standing }`. State persists in
+`webapp/.data/shield-state.json` (gitignored; swap `lib/shield/store.ts` for a
+real database in production — routes only touch state through that module).
+
+`GET /api/partners?partnerId=...` — partner exchange feed: verified signals
+(number + network warning + engine classification only; never the user's
+statement), rev-share ledger (`€0.40` per confirmed verified signal), and
+removal notices the partner must act on. `POST /api/partners` with
+`{ partnerId, reportId, outcome: "confirmed" | "legitimate" }`: `confirmed`
+books the credit; `legitimate` voids the report, revokes its credits and issues
+a false-report strike — three strikes in 90 days suspend the account and draft
+a removal notice per reported number.
+
+`GET /api/misuse` — the demo account's standing (strikes, suspension), its
+reports and all drafted removal notices. `POST /api/misuse { action: "reset" }`
+wipes the demo store.
+
 ## Conventions
 
 - TypeScript strict, App Router, Tailwind v4 with the CSS vars in `app/globals.css`

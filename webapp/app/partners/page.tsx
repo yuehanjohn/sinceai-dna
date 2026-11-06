@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PartnerConsole from "@/components/PartnerConsole";
 
 const partners = [
   {
@@ -108,6 +109,19 @@ export default function PartnersPage() {
           Every report concerns numbers that users reported as the ones scamming{" "}
           <em>them</em>. Nothing else is shared, with anyone, for any reason.
         </p>
+      </section>
+
+      {/* Live exchange console */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-semibold tracking-tight">The exchange, live</h2>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
+          This is the actual exchange the statements above describe: verified signals in,
+          partner confirmations back, credits per verified signal — and removal notices the
+          moment a report is withdrawn.
+        </p>
+        <div className="mt-6">
+          <PartnerConsole />
+        </div>
       </section>
 
       <div className="mt-12 rounded-xl border border-[var(--border)] p-6 text-center">

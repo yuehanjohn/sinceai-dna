@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MisuseConsole from "@/components/MisuseConsole";
 
 const neverDo = [
   {
@@ -104,6 +105,19 @@ export default function MisusePage() {
               <p className="mt-2 text-sm text-[var(--muted)]">{r.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Live moderation console */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-semibold tracking-tight">How enforcement works, live</h2>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
+          The policy above is enforced by code, not promises. Below is the demo account&apos;s
+          actual standing: strikes from partner-verified false reports, the resulting
+          suspension, and the removal notices automatically drafted to partners.
+        </p>
+        <div className="mt-6">
+          <MisuseConsole />
         </div>
       </section>
 
