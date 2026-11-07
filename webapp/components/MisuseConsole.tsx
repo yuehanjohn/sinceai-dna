@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { DEMO_PARTNERS } from "@/lib/shield/partners";
+import { shieldPartners } from "@/lib/shield/partners";
 import type { AccountStanding, RemovalNotice } from "@/lib/shield/types";
 
 interface MyReport {
@@ -53,7 +53,7 @@ export default function MisuseConsole() {
         // verifies it as legitimate. The server enforces one response per
         // partner per report, so this mirrors independent partner verifications.
         let lastError = "No partner available to verify";
-        for (const partner of DEMO_PARTNERS) {
+        for (const partner of shieldPartners()) {
           const res = await fetch("/api/partners", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -109,8 +109,8 @@ export default function MisuseConsole() {
           <h3 className="font-medium">Moderation console (demo)</h3>
           <p className="mt-1 text-sm text-[var(--muted)]">
             False reports are detected when a partner verifies the number as legitimate. Three
-            strikes within {data?.strikeWindowDays ?? 90} days suspend the account and pull every
-            report back with removal notices.
+            strikes within {data?.strikeWindowDays ?? 90} days suspend the account, pull every
+            report back with removal notices and withdraw your active offer consents.
           </p>
         </div>
         <span

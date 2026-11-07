@@ -25,6 +25,9 @@ function emptyState(): ShieldStoreState {
     credits: [],
     strikes: [],
     notices: [],
+    consents: [],
+    leadGrants: [],
+    partnerKeys: {},
     suspendedAt: {},
   };
 }

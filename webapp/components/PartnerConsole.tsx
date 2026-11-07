@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DEMO_PARTNERS } from "@/lib/shield/partners";
+import { DEMO_PARTNERS, partnerById } from "@/lib/shield/partners";
 import type {
   CreditEntry,
   PartnerOutcomeKind,
@@ -10,7 +10,8 @@ import type {
 } from "@/lib/shield/types";
 
 interface PartnerFeed {
-  partner: { id: string; name: string; role: string };
+  partner: { id: string; name: string; role: string; kind: string };
+  leadCommissionOwedEur?: number;
   signals: PartnerSignalView[];
   credits: CreditEntry[];
   totalEur: number;
@@ -23,6 +24,25 @@ interface PostResponse {
   error?: string;
   suspended?: boolean;
   noticesCount?: number;
+}
+
+interface FeedDelta {
+  partner: { id: string; name: string; role: string; kind: string };
+  generatedAt: string;
+  cursor: string;
+  signals: {
+    reportId: string;
+    number: string;
+    eventAt: string | null;
+    warningLabel: string | null;
+    warningCategory: string | null;
+    riskLevel: string;
+    confirmedByPartner: boolean;
+  }[];
+  retracted: { reportId: string; number: string; at: string }[];
+  notices: RemovalNotice[];
+  leads: { grantId: string; number: string; consentedAt: string; commissionEur: number }[];
+  leadRevocations: { grantId: string; number: string; at: string }[];
 }
 
 function formatTime(iso: string | null): string {
@@ -38,6 +58,12 @@ export default function PartnerConsole() {
   const [busyReport, setBusyReport] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [openNotice, setOpenNotice] = useState<string | null>(null);
+  const [feed, setFeed] = useState<FeedDelta | null>(null);
+  const [feedCursor, setFeedCursor] = useState<string | null>(null);
+  const [busyFeed, setBusyFeed] = useState(false);
+  const [keyOverride, setKeyOverride] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState(false);
+  const effectiveKey = keyOverride ?? partnerById(partnerId)?.apiKey ?? "";
 
   const load = useCallback(async (pid: string) => {
     setData(null);
@@ -49,6 +75,56 @@ export default function PartnerConsole() {
       setMessage(e instanceof Error ? e.message : "Exchange request failed");
     }
   }, []);
+
+  const fetchFeed = useCallback(
+    async (useCursor: boolean) => {
+      setBusyFeed(true);
+      setMessage(null);
+      try {
+        const key = effectiveKey;
+        const since = useCursor && feedCursor ? `?since=${encodeURIComponent(feedCursor)}` : "";
+        const res = await fetch(`/api/partners/feed${since}`, {
+          cache: "no-store",
+          headers: { "X-Partner-Key": key },
+        });
+        const body = (await res.json()) as FeedDelta & { error?: string };
+        if (!res.ok) throw new Error(body.error ?? `Feed request failed (${res.status})`);
+        setFeed(body);
+        setFeedCursor(body.cursor);
+        setMessage(
+          `Feed synced — signals ${body.signals.length} · retracted ${body.retracted.length} · notices ${body.notices.length} · leads ${body.leads.length} · lead revocations ${body.leadRevocations.length}.`,
+        );
+      } catch (e) {
+        setMessage(e instanceof Error ? e.message : "Feed request failed");
+      } finally {
+        setBusyFeed(false);
+      }
+    },
+    [partnerId, feedCursor, effectiveKey],
+  );
+
+  const rotateKey = useCallback(async () => {
+    setBusyKey(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/partners/feed/rotate", {
+        method: "POST",
+        headers: { "X-Partner-Key": effectiveKey },
+      });
+      const body = (await res.json()) as { apiKey?: string; error?: string };
+      if (!res.ok) throw new Error(body.error ?? `Rotation failed (${res.status})`);
+      setKeyOverride(body.apiKey ?? null);
+      setFeed(null);
+      setFeedCursor(null);
+      setMessage(
+        `API key rotated for ${partnerById(partnerId)?.name ?? "partner"} — the previous key no longer works. Copy the new key now; it is shown until you switch partners.`,
+      );
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Rotation failed");
+    } finally {
+      setBusyKey(false);
+    }
+  }, [effectiveKey, partnerId]);
 
   useEffect(() => {
     load(partnerId);
@@ -100,7 +176,12 @@ export default function PartnerConsole() {
           <button
             key={p.id}
             type="button"
-            onClick={() => setPartnerId(p.id)}
+            onClick={() => {
+              setPartnerId(p.id);
+              setFeed(null);
+              setFeedCursor(null);
+              setKeyOverride(null);
+            }}
             className={
               p.id === partnerId
                 ? "rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white"
@@ -118,6 +199,79 @@ export default function PartnerConsole() {
         </p>
       )}
 
+      <div className="rounded-lg border border-[var(--border)] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Sync feed (API)</h4>
+            <p className="mt-1 max-w-xl text-xs text-[var(--muted)]">
+              Poll <span className="font-mono">/api/partners/feed</span> with this partner&#39;s key.
+              Cursor-based deltas: verified signals for blocking (shield partners) or consent-based
+              leads (marketplace partners), plus retractions, revocations and purge notices.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busyFeed}
+              onClick={() => fetchFeed(false)}
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors hover:text-[var(--foreground)] disabled:opacity-50"
+            >
+              {busyFeed ? "Working…" : "Fetch full feed"}
+            </button>
+            <button
+              type="button"
+              disabled={busyFeed || !feedCursor}
+              onClick={() => fetchFeed(true)}
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors hover:text-[var(--foreground)] disabled:opacity-50"
+            >
+              Fetch since last
+            </button>
+            <button
+              type="button"
+              disabled={busyKey || busyFeed}
+              onClick={rotateKey}
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition-colors hover:text-[var(--foreground)] disabled:opacity-50"
+            >
+              {busyKey ? "Rotating…" : "Rotate key"}
+            </button>
+          </div>
+        </div>
+        <p className="mt-2 break-all font-mono text-xs text-[var(--muted)]">
+          X-Partner-Key: {effectiveKey || "—"}
+        </p>
+        {feed && (
+          <div className="mt-3 flex flex-col gap-1 font-mono text-xs">
+            <div className="text-[var(--muted)]">cursor {feed.cursor}</div>
+            {feed.signals.map((sig) => (
+              <div key={sig.reportId}>
+                signal · {sig.number} · risk {sig.riskLevel} · {sig.warningLabel ?? sig.warningCategory ?? "—"}
+                {sig.confirmedByPartner ? " · confirmed" : ""}
+              </div>
+            ))}
+            {feed.retracted.map((rt) => (
+              <div key={rt.reportId} style={{ color: "var(--warning)" }}>
+                retract · {rt.number} · purge since {formatTime(rt.at)}
+              </div>
+            ))}
+            {feed.leads.map((l) => (
+              <div key={l.grantId}>
+                lead · {l.number} · consented {formatTime(l.consentedAt)} · commission €{l.commissionEur.toFixed(2)}
+              </div>
+            ))}
+            {feed.leadRevocations.map((rv) => (
+              <div key={rv.grantId} style={{ color: "var(--warning)" }}>
+                lead revoked · {rv.number} · purge since {formatTime(rv.at)}
+              </div>
+            ))}
+            {feed.notices.map((n) => (
+              <div key={n.id} style={{ color: "var(--warning)" }}>
+                notice · {n.subject}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {data && (
         <>
           <div className="grid gap-2 text-sm sm:grid-cols-3">
@@ -125,16 +279,27 @@ export default function PartnerConsole() {
               <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Role</div>
               <div>{data.partner.role}</div>
             </div>
-            <div className="rounded-md border border-[var(--border)] px-3 py-2">
-              <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Rev-share balance</div>
-              <div className="font-mono">€{data.totalEur.toFixed(2)}</div>
-            </div>
-            <div className="rounded-md border border-[var(--border)] px-3 py-2">
-              <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Per verified signal</div>
-              <div className="font-mono">€{data.creditPerVerifiedSignalEur.toFixed(2)}</div>
-            </div>
+            {data.partner.kind !== "marketplace" && (
+              <>
+                <div className="rounded-md border border-[var(--border)] px-3 py-2">
+                  <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Rev-share balance</div>
+                  <div className="font-mono">€{data.totalEur.toFixed(2)}</div>
+                </div>
+                <div className="rounded-md border border-[var(--border)] px-3 py-2">
+                  <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Per verified signal</div>
+                  <div className="font-mono">€{data.creditPerVerifiedSignalEur.toFixed(2)}</div>
+                </div>
+              </>
+            )}
+            {data.partner.kind === "marketplace" && (
+              <div className="rounded-md border border-[var(--border)] px-3 py-2">
+                <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Lead commission owed</div>
+                <div className="font-mono">€{(data.leadCommissionOwedEur ?? 0).toFixed(2)}</div>
+              </div>
+            )}
           </div>
 
+          {data.partner.kind !== "marketplace" && (
           <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full text-left text-sm">
               <thead>
@@ -195,9 +360,9 @@ export default function PartnerConsole() {
                 )}
               </tbody>
             </table>
-          </div>
+          </div>)}
 
-          {data.credits.length > 0 && (
+          {data.partner.kind !== "marketplace" && data.credits.length > 0 && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Rev-share ledger</h4>
               <ul className="mt-2 flex flex-col gap-1 font-mono text-xs">

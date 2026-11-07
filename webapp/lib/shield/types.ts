@@ -122,7 +122,39 @@ export interface RemovalNotice {
   language: Language;
   subject: string;
   body: string;
-  reason: "account_suspended_for_misuse" | "report_proven_not_scam";
+  reason:
+    | "account_suspended_for_misuse"
+    | "report_proven_not_scam"
+    | "consent_withdrawn";
+}
+
+/** A user's explicit, per-partner consent to share their OWN number for offers.
+ * Scope: only the consenting user's own contact detail — never a reported
+ * third-party number. Withdrawal is always available and triggers a purge. */
+export interface LeadConsent {
+  id: string;
+  at: string;
+  actorId: string;
+  partnerId: string;
+  number: string;
+  language: Language;
+  /** Set when the user withdrew consent; the partner must purge the number. */
+  withdrawnAt: string | null;
+}
+
+/** A lead delivered to a partner on the basis of an explicit user consent.
+ * Carries both sides of the marketplace economics: what the partner pays and
+ * what the user earns. Revoked together with the consent on withdrawal. */
+export interface LeadGrant {
+  id: string;
+  at: string;
+  consentId: string;
+  partnerId: string;
+  number: string;
+  userRewardEur: number;
+  commissionEur: number;
+  /** Set when the consent was withdrawn: the lead is voided economically. */
+  rewardRevokedAt: string | null;
 }
 
 export interface AccountStanding {
@@ -140,5 +172,11 @@ export interface ShieldStoreState {
   credits: CreditEntry[];
   strikes: StrikeEntry[];
   notices: RemovalNotice[];
+  /** Opt-in lead marketplace: user consents to share their own number. */
+  consents: LeadConsent[];
+  /** Leads delivered to partners on the basis of an explicit user consent. */
+  leadGrants: LeadGrant[];
+  /** Effective feed API keys after rotation; registry keys are the seeds. */
+  partnerKeys: Record<string, string>;
   suspendedAt: Record<string, string | null>;
 }

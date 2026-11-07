@@ -182,6 +182,32 @@ const NOTICE_TEMPLATES: Record<Language, { subject: (n: string) => string; body:
   },
 };
 
+// Consent-withdrawal notices for the lead marketplace: the user pulled their
+// consent, so the partner must purge the number from marketing systems.
+const LEAD_NOTICE_TEMPLATES: Record<Language, { subject: (n: string) => string; body: (n: string, ref: string) => string }> = {
+  fi: {
+    subject: (n) => `Suostumuksen peruutus — numero ${n}`,
+    body: (n, ref) =>
+      `Käyttäjä on peruuttanut suostumuksensa tarjousten vastaanottamiseen (liidi ${ref}, numero ${n}).\n\n` +
+      `Pyydämme poistamaan numeron ${n} markkinointijärjestelmistäne ja lopettamaan yhteydenotot siihen. Kaikki liidiin liittyvät tiedot on poistettava.\n\n` +
+      `Peruste: EU 2016/679 (GDPR) art. 7(3) — suostumuksen peruuttaminen — sekä art. 17(1)(b) ja art. 19.`,
+  },
+  en: {
+    subject: (n) => `Consent withdrawal — number ${n}`,
+    body: (n, ref) =>
+      `The user has withdrawn their consent to receive offers (lead ${ref}, number ${n}).\n\n` +
+      `Please delete ${n} from your marketing systems and stop contacting this number. All related lead data must be removed.\n\n` +
+      `Legal basis: GDPR (EU) 2016/679 Art. 7(3) — withdrawal of consent — and Art. 17(1)(b) and Art. 19.`,
+  },
+  sv: {
+    subject: (n) => `Återkallat samtycke — nummer ${n}`,
+    body: (n, ref) =>
+      `Användaren har återkallat sitt samtycke att ta emot erbjudanden (liid ${ref}, nummer ${n}).\n\n` +
+      `Vi begär att ${n} tas bort från era marknadsföringssystem och att kontakten upphör. All relaterad liid-data ska raderas.\n\n` +
+      `Rättslig grund: GDPR (EU) 2016/679 art. 7(3) — återkallande av samtycke — samt art. 17(1)(b) och art. 19.`,
+  },
+};
+
 export function removalNotice(input: {
   number: string;
   reportId: string;
@@ -191,6 +217,20 @@ export function removalNotice(input: {
   reason: RemovalNotice["reason"];
   at: string;
 }): RemovalNotice {
+  if (input.reason === "consent_withdrawn") {
+    const lt = LEAD_NOTICE_TEMPLATES[input.language];
+    return {
+      id: `notice-lead-${input.reportId}-${Date.now()}`,
+      at: input.at,
+      number: input.number,
+      reporterId: input.reporterId,
+      partnerIds: input.partnerIds,
+      language: input.language,
+      subject: lt.subject(input.number),
+      body: lt.body(input.number, input.reportId),
+      reason: input.reason,
+    };
+  }
   const tpl = NOTICE_TEMPLATES[input.language];
   const reasonText =
     input.reason === "account_suspended_for_misuse"

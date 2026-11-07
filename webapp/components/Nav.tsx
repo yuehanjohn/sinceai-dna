@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/assistant", label: "Assistant" },
   { href: "/shield", label: "Call Shield" },
+  { href: "/offers", label: "Offers" },
   { href: "/pricing", label: "Pricing" },
   { href: "/partners", label: "Partners" },
   { href: "/misuse", label: "Misuse & policy" },

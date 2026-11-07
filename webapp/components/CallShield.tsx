@@ -290,7 +290,8 @@ export default function CallShield() {
       {suspended && (
         <div className="rounded-lg border border-[var(--error)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)] px-4 py-3 text-sm" style={{ color: "var(--error)" }}>
           Account suspended for misuse — outbound reporting is disabled. Removal notices for your
-          reports have been drafted to partner organisations. <Link href="/misuse" className="underline">Details</Link>
+          reports have been drafted to partner organisations, and your active offer consents have
+          been withdrawn. <Link href="/misuse" className="underline">Details</Link>
         </div>
       )}
 

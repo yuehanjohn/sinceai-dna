@@ -6,6 +6,7 @@
 // back and purging the affected numbers from partner systems.
 
 import { DEMO_PARTNERS, isVerifiedReport } from "./partners";
+import { revokeConsent } from "./leads";
 import { removalNotice } from "./reports";
 import type {
   PartnerOutcome,
@@ -110,13 +111,22 @@ export function applyPartnerOutcome(
         number: r.number,
         reportId: r.id,
         reporterId: r.reporterId,
-        partnerIds: DEMO_PARTNERS.map((p) => p.id),
+        partnerIds: DEMO_PARTNERS.filter((p) => p.kind === "shield").map((p) => p.id),
         language: r.language,
         reason: "account_suspended_for_misuse",
         at: now,
       });
       s.notices.push(notice);
       notices.push(notice);
+    }
+    // Pull back the account's marketplace privileges too: every active lead
+    // consent is withdrawn, its lead voided economically, and the holding
+    // partner receives a consent-withdrawal purge notice.
+    for (const c of s.consents) {
+      if (c.actorId === report.reporterId && !c.withdrawnAt) {
+        const { notice } = revokeConsent(s, { consentId: c.id, now });
+        notices.push(notice);
+      }
     }
     return { outcome, strikeAdded: strike, suspended: true, notices, creditsRevoked: anyRevoked };
   }

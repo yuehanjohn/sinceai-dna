@@ -50,7 +50,34 @@ removal notices the partner must act on. `POST /api/partners` with
 `{ partnerId, reportId, outcome: "confirmed" | "legitimate" }`: `confirmed`
 books the credit; `legitimate` voids the report, revokes its credits and issues
 a false-report strike — three strikes in 90 days suspend the account and draft
-a removal notice per reported number.
+a removal notice per reported number. Suspension also pulls back the account's
+marketplace privileges: every active lead consent is withdrawn, its lead is
+voided economically (user reward and partner commission both revoked) and the
+holding partner receives a consent-withdrawal purge notice.
+
+`GET /api/partners/feed` — authenticated partner sync feed. Header
+`X-Partner-Key` (seed keys in `lib/shield/partners.ts`; rotated keys are
+store-backed — rotate via `POST /api/partners/feed/rotate` with the current
+key; it returns the new key once and the old key stops working immediately).
+`?since=<cursor>` returns a delta and every response carries a fresh `cursor`:
+signals, retractions, notices, leads and lead revocations are all filtered by
+their event time against the cursor; omit `since` for a full snapshot.
+Shield-kind partners receive verified scam signals (number + network warning +
+engine classification only), retractions of voided reports and removal notices
+to purge. Marketplace-kind partners receive ONLY leads the user explicitly
+consented to share, plus lead revocations when consent is withdrawn.
+
+`GET /api/leads` — the user's opt-in lead consents, delivered leads and reward
+total. `POST /api/leads` with `{ action: "consent", partnerId, number }` shares
+the USER'S OWN number with one marketplace partner for offers (€2.00 reward to
+the user, €6.00 commission from the partner; one active consent per partner)
+or `{ action: "revoke", consentId }` withdraws consent: the lead is voided
+economically and the partner receives a consent-withdrawal purge notice
+(GDPR Art. 7(3), 17(1)(b), 19). A suspended account gets `403` on `consent` —
+no new lead pipelines while suspended — while `revoke` stays available.
+Marketplace partners cannot consume the shield
+exchange and shield partners cannot receive leads — the two commerce paths are
+strictly separate.
 
 `GET /api/misuse` — the demo account's standing (strikes, suspension), its
 reports and all drafted removal notices. `POST /api/misuse { action: "reset" }`
@@ -63,7 +90,8 @@ wipes the demo store.
 - No new npm dependencies. English UI chrome; `advice_text` is rendered in the
   case's language as returned by the engine.
 - Pages: `/` landing, `/assistant` chat, `/shield` call-shield demo,
-  `/pricing`, `/partners`, `/misuse`. Shared nav lives in `app/layout.tsx`.
+  `/offers` opt-in lead marketplace, `/pricing`, `/partners`, `/misuse`. Shared
+  nav lives in `app/layout.tsx`.
 - Data files the engine reads at runtime are NOT used; the engine is
   self-contained (patterns compiled into `detect.ts`).
 - Product tone: protective, honest. The service blocks, reports and escalates.

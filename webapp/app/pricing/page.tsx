@@ -34,6 +34,12 @@ const features: { label: string; shield: Cell; plus: Cell; business: Cell }[] =
     { label: "Shield log of calls and texts", shield: true, plus: true, business: true },
     { label: "Block & report in one tap", shield: true, plus: true, business: true },
     {
+      label: "Opt-in partner offers — earn €2 credit per consented lead",
+      shield: true,
+      plus: true,
+      business: true,
+    },
+    {
       label: "Full assistant chat — messages, links, breach notices",
       shield: false,
       plus: true,
@@ -149,7 +155,11 @@ export default function PricingPage() {
         <Link href="/partners" className="text-[var(--accent)] hover:underline">
           Partners
         </Link>
-        .
+        . Offer credits are earned only on{" "}
+        <Link href="/offers" className="text-[var(--accent)] hover:underline">
+          Offers
+        </Link>{" "}
+        by explicitly sharing your own number, and withdraw with you.
       </p>
 
       <div className="mt-12 rounded-xl border border-[var(--border)] p-6 text-center">

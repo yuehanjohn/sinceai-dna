@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DEMO_CALL_EVENTS } from "@/lib/callEvents";
 import { applyPartnerOutcome, exchangeableReports, type MisuseResult } from "@/lib/shield/misuse";
+import { partnerCommissionTotal } from "@/lib/shield/leads";
 import {
   VERIFIED_SIGNAL_CREDIT_EUR,
   isVerifiedReport,
@@ -47,15 +48,22 @@ export async function GET(req: NextRequest) {
   for (const o of s.outcomes.filter((o) => o.partnerId === partnerId)) {
     outcomesByPartner.set(o.reportId, o.outcome);
   }
-  const signals = exchangeableReports(s).map((r) => toView(r, outcomesByPartner));
+  // Marketplace partners consume the consent-based lead feed only.
+  const signals = (partner.kind === "shield" ? exchangeableReports(s) : []).map((r) =>
+    toView(r, outcomesByPartner),
+  );
   const credits = s.credits.filter((c) => c.partnerId === partnerId);
   return NextResponse.json({
-    partner,
+    // Never expose the feed API key through the unauthenticated console endpoint.
+    partner: { id: partner.id, name: partner.name, role: partner.role, kind: partner.kind },
     signals,
     credits,
     totalEur: partnerTotalCredits(s.credits, partnerId),
     creditPerVerifiedSignalEur: VERIFIED_SIGNAL_CREDIT_EUR,
     notices: noticesForPartner(s, partnerId),
+    ...(partner.kind === "marketplace"
+      ? { leadCommissionOwedEur: partnerCommissionTotal(s, partnerId) }
+      : {}),
   });
 }
 
@@ -75,6 +83,12 @@ export async function POST(req: NextRequest) {
     const outcomeKind = body?.outcome as PartnerOutcomeKind;
     if (!partner || !reportId || (outcomeKind !== "confirmed" && outcomeKind !== "legitimate")) {
       return NextResponse.json({ error: "Missing or invalid partnerId, reportId or outcome" }, { status: 400 });
+    }
+    if (partner.kind !== "shield") {
+      return NextResponse.json(
+        { error: "Marketplace partners consume the consent-based lead feed only" },
+        { status: 400 },
+      );
     }
 
     const outcome = await mutate((s): { error: string } | { ok: true; misuse?: MisuseResult } => {

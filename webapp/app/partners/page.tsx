@@ -74,6 +74,27 @@ export default function PartnersPage() {
               users pay for, not from the users themselves.
             </p>
           </div>
+          <div className="rounded-xl border border-[var(--border)] p-6">
+            <h3 className="font-medium text-[var(--success)]">
+              Suppression feed API
+            </h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              A cursor-based sync feed of verified scam numbers, retractions and
+              purge notices — block known fraud before it wastes your agents&#39;
+              time. Authenticated with per-partner keys.
+            </p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] p-6">
+            <h3 className="font-medium text-[var(--success)]">
+              Consent-based lead marketplace
+            </h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Leads reach sales partners only when a user explicitly opts in to
+              share their own number for a service credit — and a withdrawal
+              purges the lead and notifies the partner. Security reports never
+              become sales audiences.
+            </p>
+          </div>
         </div>
       </section>
 

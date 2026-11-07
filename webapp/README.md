@@ -10,7 +10,7 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-Pages: `/` landing · `/assistant` chat assistant · `/shield` call-shield demo · `/pricing` · `/partners` · `/misuse` policy.
+Pages: `/` landing · `/assistant` chat assistant · `/shield` call-shield demo · `/offers` opt-in lead marketplace · `/pricing` · `/partners` · `/misuse` policy.
 
 ## Architecture
 
@@ -25,13 +25,17 @@ lib/shield/        compliance pipeline behind /shield, /partners, /misuse
   types.ts         shared shapes: action log, saved numbers, reports, credits, strikes, notices
   store.ts         server-only JSON-file store (.data/, serialized writes; swap for a DB in production)
   reports.ts       deterministic draft generators: operator / Traficom / police reports, removal notices (fi/en/sv)
-  partners.ts      partner registry, verification rule, rev-share ledger (€0.40 per verified signal)
+  partners.ts      partner registry (kind: shield | marketplace, demo API keys), verification rule, rev-share ledger (€0.40 per verified signal)
+  leads.ts         opt-in lead marketplace: consent → granted lead (€2 user reward / €6 commission) → withdrawal purge notice
+  feed.ts          cursor-based partner sync feed: scam signals + retractions (shield) or consented leads + revocations (marketplace)
   misuse.ts        false-report strikes (3 in 90 days) → suspension → removal notices
   notify.ts        browser-notification helpers for scam detections
   caseFromEvent.ts single CallEvent → CaseInput mapping shared by client and server
 app/api/assistant  POST {case, mode, state} → {decision} | {decision|null, turn}
 app/api/shield     block/save/report actions; generates report drafts; persists; 403 on outbound while suspended
 app/api/partners   verified-signal exchange feed + rev-share ledger + partner outcomes
+app/api/partners/feed  authenticated cursor-based sync feed (X-Partner-Key): scam signals (shield) or consented leads (marketplace); /rotate rotates the key
+app/api/leads      user lead consents: consent / revoke / list; revocation drafts the partner purge notice
 app/api/misuse     account standing, reports, drafted removal notices; demo reset
 scripts/
   gen-submissions.ts   writes dev-submissions.jsonl + test_predictions.jsonl from the engine
@@ -65,7 +69,14 @@ exchange, with misuse enforcement built in:
    its credits revoked and the reporter takes a false-report strike. Three
    strikes in 90 days suspend the account: outbound reporting locks, and a
    removal notice (GDPR Art. 17/19 basis) is auto-drafted to every partner for
-   every number the account reported.
+   every number the account reported. Suspension also withdraws the account's
+   active lead consents — the lead is voided and the partner is told to purge.
+
+Two commerce paths exist for partners, strictly separated: shield partners poll
+`/api/partners/feed` for verified scam numbers to block — never for sales. Sales
+partners receive a number only after the user explicitly consents on `/offers`
+in exchange for a service credit, and withdrawal voids the lead and drafts a
+purge notice (GDPR Art. 7(3), 17(1)(b), 19). A reported scammer is never a lead.
 
 The retaliation features this pipeline deliberately does NOT have (public
 shaming, lead-form submissions, service sign-ups) are listed on `/misuse` and
