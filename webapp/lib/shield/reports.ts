@@ -78,7 +78,7 @@ const TEMPLATES: Record<Language, T> = {
     operatorAsk: "Pyydämme numeron lisäämistä verkotason suodatuslistaan ja varmennusta muiden asiakkaiden raportteja vasten.",
     traficomAsk: "Pyydämme ilmoittamaan numeron osaksi haittaviestintäseurantaa ja tarvittaessa eteenpäin viranomaisverkostoon.",
     policeAsk: "Aineisto on koostettu asiakkaan luvalla rikosilmoituksen liitteeksi. Asiakas tekee itse varsinaisen ilmoituksen.",
-    signature: "DNA Security Assistant — automaattinen luonnos asiakkaan puolesta (lähettää vasta asiakkaan vahvistama).",
+    signature: "FireBack — automaattinen luonnos asiakkaan puolesta (lähettää vasta asiakkaan vahvistama).",
   },
   en: {
     operatorTo: "DNA network filtering team",
@@ -96,7 +96,7 @@ const TEMPLATES: Record<Language, T> = {
     operatorAsk: "We ask that the number be added to the network-level filter list and cross-checked against other customers' reports.",
     traficomAsk: "We ask that the number be included in nuisance-communication monitoring and forwarded to the authority network if needed.",
     policeAsk: "This pack was compiled with the customer's consent as an annex to their police report. The customer files the report themselves.",
-    signature: "DNA Security Assistant — automatic draft on behalf of the customer (sent only after customer confirmation).",
+    signature: "FireBack — automatic draft on behalf of the customer (sent only after customer confirmation).",
   },
   sv: {
     operatorTo: "DNA, nätverksövervakning (filtrering av störande samtal)",
@@ -114,7 +114,7 @@ const TEMPLATES: Record<Language, T> = {
     operatorAsk: "Vi begär att numret läggs till i nätverksnivåns filterlista och stäms av mot andra kunders rapporter.",
     traficomAsk: "Vi begär att numret tas med i bevakningen av störande kommunikation och vid behov vidarebefordras till myndighetsnätverket.",
     policeAsk: "Materialet har sammanställts med kundens samtycke som bilaga till polisanmälan. Kunden lämnar själv anmälan.",
-    signature: "DNA Security Assistant — automatiskt utkast å kundens vägnar (skickas först efter kundens bekräftelse).",
+    signature: "FireBack — automatiskt utkast å kundens vägnar (skickas först efter kundens bekräftelse).",
   },
 };
 
@@ -163,22 +163,22 @@ const NOTICE_TEMPLATES: Record<Language, { subject: (n: string) => string; body:
     subject: (n) => `Poistopyyntö — numero ${n}`,
     body: (n, ref, reason) =>
       `Raportti numeroon ${n} (viite ${ref}) on vedetty takaisin: ${reason}.\n\n` +
-      `Pyydämme poistamaan numeron ${n} estolistoiltanne ja poistamaan kaikki siihen liittyvät raporttitiedot.\n\n` +
-      `Peruste: EU 2016/679 (GDPR) art. 17(1)(b)–(c) — tietojen käsittely on perusteetonta — sekä art. 19 viestintä käsittelyn korjaamisesta. Väärä raportti ei saa jäädä pysyväksi tietueeksi.`,
+      `Pyydämme poistamaan numeron ${n} estolistoiltanne, liidirekistereistänne ja markkinoinnin tietojärjestelmistä sekä lopettamaan yhteydenotot siihen. Kaikki numeroon liittyvät tiedot on poistettava.\n\n` +
+      `Peruste: EU 2016/679 (GDPR) art. 17(1)(b)–(c) — tietojen käsittely on perusteetonta — sekä art. 19 viestintä käsittelyn korjaamisesta. Väärä raportti ei saa jäädä pysyväksi tietueeksi eikä väärä liidi pysyväksi soittolistaksi.`,
   },
   en: {
     subject: (n) => `Removal request — number ${n}`,
     body: (n, ref, reason) =>
       `The report on ${n} (reference ${ref}) has been withdrawn: ${reason}.\n\n` +
-      `Please remove ${n} from your blocklists and delete all related report data.\n\n` +
-      `Legal basis: GDPR (EU) 2016/679 Art. 17(1)(b)–(c) — the processing has no lawful basis — and Art. 19 on notifying recipients of a rectification. A false report must not become a permanent record.`,
+      `Please remove ${n} from your blocklists, your lead registers and your marketing systems, and stop contacting the number. All data related to it must be deleted.\n\n` +
+      `Legal basis: GDPR (EU) 2016/679 Art. 17(1)(b)–(c) — the processing has no lawful basis — and Art. 19 on notifying recipients of a rectification. A false report must not become a permanent record, nor a false lead a permanent call list.`,
   },
   sv: {
     subject: (n) => `Begäran om radering — nummer ${n}`,
     body: (n, ref, reason) =>
       `Rapporten om ${n} (referens ${ref}) har återtagits: ${reason}.\n\n` +
-      `Vi begär att ${n} tas bort från era blocklistor och att alla relaterade rapportuppgifter raderas.\n\n` +
-      `Rättslig grund: GDPR (EU) 2016/679 art. 17(1)(b)–(c) — behandlingen saknar rättslig grund — och art. 19 om underrättelse av mottagare om rättelse. En felaktig rapport får inte bli en permanent post.`,
+      `Vi begär att ${n} tas bort från era blocklistor, era liidregister och era marknadsföringssystem, och att kontakten med numret upphör. Alla uppgifter kopplade till numret ska raderas.\n\n` +
+      `Rättslig grund: GDPR (EU) 2016/679 art. 17(1)(b)–(c) — behandlingen saknar rättslig grund — och art. 19 om underrättelse av mottagare om rättelse. En felaktig rapport får inte bli en permanent post, och en felaktig liid inte en permanent samtalslista.`,
   },
 };
 
@@ -234,7 +234,7 @@ export function removalNotice(input: {
   const tpl = NOTICE_TEMPLATES[input.language];
   const reasonText =
     input.reason === "account_suspended_for_misuse"
-      ? { fi: "raportoija on poistettu palvelusta väärinkäytön vuoksi", en: "the reporter's account was suspended for misuse", sv: "rapportören har stängts av för missbruk" }[input.language]
+      ? { fi: "raportoija on poistettu palvelusta väärinkäytön vuoksi, joten myös takaisin lähetetyt numerot vedetään pois", en: "the reporter's account was suspended for misuse, so the numbers fired back are pulled too", sv: "rapportören har stängts av för missbruk, så även de tillbakaskickade numren dras tillbaka" }[input.language]
       : { fi: "numero on todettu lailliseksi kumppaniverifioinnissa", en: "the number was verified as legitimate by a partner", sv: "numret har konstaterats legitimt av en partner" }[input.language];
   return {
     id: `notice-${input.reportId}-${Date.now()}`,

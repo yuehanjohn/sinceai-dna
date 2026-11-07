@@ -1,4 +1,4 @@
-// Shared data shapes for the Call Shield compliance pipeline:
+// Shared data shapes for the FireBack compliance pipeline:
 // action log, evidence, report drafts, partner exchange, rev-share ledger,
 // misuse strikes/suspension and partner removal notices.
 // Pure data shapes only — no runtime logic.
@@ -13,6 +13,7 @@ export type ShieldActionId =
   | "block_device"
   | "save_number"
   | "block_and_save"
+  | "fire_back"
   | "report_operator"
   | "report_traficom"
   | "evidence_pack";
@@ -39,6 +40,37 @@ export interface SavedNumber {
   /** true when saved automatically on detection, false when user-initiated only. */
   autoSaved: boolean;
 }
+
+/** Where a fired-back number is sent. The fan-out is the product: the caller
+ * who scammed you ends up on the receiving end of the sales economy.
+ * - marketplace_listing: a public listing that anyone can see and call.
+ * - real_estate:   Finnish estate-agency contact forms.
+ * - sales:         Finnish outbound sales companies' lead forms.
+ * - harasser_site: dating/adult sites, for harassers (99.99 % of them men). */
+export type ChannelKind = "marketplace_listing" | "real_estate" | "sales" | "harasser_site";
+
+/** A form submitted on the caller's behalf, filled with their number. */
+export interface Submission {
+  id: string;
+  number: string;
+  reportId: string;
+  eventId: string;
+  actorId: string;
+  channelId: string;
+  channelKind: ChannelKind;
+  channelName: string;
+  createdAt: string;
+  /** Demo delivery is scheduled, not instantaneous: staggered per target so a
+   * poll can watch the fan-out land. Production would follow the partner API. */
+  deliverAt: string;
+  status: SubmissionStatus;
+  /** The form fields exactly as filled in for this target. */
+  payload: Record<string, string>;
+  purgedAt: string | null;
+}
+
+/** queued → delivered by the scheduler; purged when the number is pulled back. */
+export type SubmissionStatus = "queued" | "delivered" | "purged";
 
 /** A structured, ready-to-send report draft. */
 export interface ReportDraft {
@@ -92,7 +124,9 @@ export interface PartnerOutcome {
   outcome: PartnerOutcomeKind;
 }
 
-/** Revenue-share ledger line. Negative amounts revoke earlier credits. */
+/** Revenue-share ledger line. Negative amounts revoke earlier credits.
+ * Every line is paid FROM the subscription profit share (see channels.ts) —
+ * users never pay the partners directly. */
 export interface CreditEntry {
   id: string;
   at: string;
@@ -100,7 +134,7 @@ export interface CreditEntry {
   reportId: string;
   number: string;
   eur: number;
-  basis: "verified_signal" | "revocation";
+  basis: "verified_signal" | "revocation" | "weak_lead" | "weak_lead_revocation";
 }
 
 export interface StrikeEntry {
@@ -168,6 +202,8 @@ export interface ShieldStoreState {
   actions: ShieldActionEntry[];
   saved: SavedNumber[];
   reports: ReportRecord[];
+  /** Fired-back numbers sent to the fan-out channels (weak leads). */
+  submissions: Submission[];
   outcomes: PartnerOutcome[];
   credits: CreditEntry[];
   strikes: StrikeEntry[];

@@ -12,6 +12,15 @@ import type {
 interface PartnerFeed {
   partner: { id: string; name: string; role: string; kind: string };
   leadCommissionOwedEur?: number;
+  weakLeadShareEur: number;
+  weakLeads: {
+    submissionId: string;
+    number: string;
+    sharedAt: string;
+    deliverAt: string;
+    status: string;
+    payload: Record<string, string>;
+  }[];
   signals: PartnerSignalView[];
   credits: CreditEntry[];
   totalEur: number;
@@ -43,6 +52,8 @@ interface FeedDelta {
   notices: RemovalNotice[];
   leads: { grantId: string; number: string; consentedAt: string; commissionEur: number }[];
   leadRevocations: { grantId: string; number: string; at: string }[];
+  weakLeads: { submissionId: string; number: string; deliveredAt: string; payload: Record<string, string> }[];
+  weakLeadPurges: { submissionId: string; number: string; at: string }[];
 }
 
 function formatTime(iso: string | null): string {
@@ -92,7 +103,7 @@ export default function PartnerConsole() {
         setFeed(body);
         setFeedCursor(body.cursor);
         setMessage(
-          `Feed synced — signals ${body.signals.length} · retracted ${body.retracted.length} · notices ${body.notices.length} · leads ${body.leads.length} · lead revocations ${body.leadRevocations.length}.`,
+          `Feed synced — signals ${body.signals.length} · retracted ${body.retracted.length} · notices ${body.notices.length} · weak leads ${body.weakLeads.length} · weak-lead purges ${body.weakLeadPurges.length} · leads ${body.leads.length} · lead revocations ${body.leadRevocations.length}.`,
         );
       } catch (e) {
         setMessage(e instanceof Error ? e.message : "Feed request failed");
@@ -166,8 +177,9 @@ export default function PartnerConsole() {
       <div>
         <h3 className="font-medium">Partner exchange console (demo)</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Sign in as a partner to consume verified scam signals and earn the rev-share credit.
-          Signals are number + network warning + engine classification only — no user details.
+          Sign in as a partner to see what it receives: verified signals (blocklist), weak leads
+          (sales), consented leads (marketplace). Every euro comes from the subscription fund, never
+          the user.
         </p>
       </div>
 
@@ -205,8 +217,7 @@ export default function PartnerConsole() {
             <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Sync feed (API)</h4>
             <p className="mt-1 max-w-xl text-xs text-[var(--muted)]">
               Poll <span className="font-mono">/api/partners/feed</span> with this partner&#39;s key.
-              Cursor-based deltas: verified signals for blocking (shield partners) or consent-based
-              leads (marketplace partners), plus retractions, revocations and purge notices.
+              Cursor deltas: signals or leads, plus retractions, revocations and purge notices.
             </p>
           </div>
           <div className="flex gap-2">
@@ -253,6 +264,16 @@ export default function PartnerConsole() {
                 retract · {rt.number} · purge since {formatTime(rt.at)}
               </div>
             ))}
+            {feed.weakLeads.map((w) => (
+              <div key={w.submissionId}>
+                weak lead · {w.number} · delivered {formatTime(w.deliveredAt)} · form {Object.keys(w.payload).length} fields
+              </div>
+            ))}
+            {feed.weakLeadPurges.map((w) => (
+              <div key={w.submissionId} style={{ color: "var(--warning)" }}>
+                weak lead purged · {w.number} · since {formatTime(w.at)}
+              </div>
+            ))}
             {feed.leads.map((l) => (
               <div key={l.grantId}>
                 lead · {l.number} · consented {formatTime(l.consentedAt)} · commission €{l.commissionEur.toFixed(2)}
@@ -286,9 +307,23 @@ export default function PartnerConsole() {
                   <div className="font-mono">€{data.totalEur.toFixed(2)}</div>
                 </div>
                 <div className="rounded-md border border-[var(--border)] px-3 py-2">
-                  <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Per verified signal</div>
-                  <div className="font-mono">€{data.creditPerVerifiedSignalEur.toFixed(2)}</div>
+                  <div className="text-xs uppercase tracking-wide text-[var(--muted)]">
+                    {data.partner.kind === "weak_lead" ? "Per weak lead" : "Per verified signal"}
+                  </div>
+                  <div className="font-mono">
+                    €
+                    {(data.partner.kind === "weak_lead"
+                      ? data.weakLeadShareEur
+                      : data.creditPerVerifiedSignalEur
+                    ).toFixed(2)}
+                  </div>
                 </div>
+                {data.partner.kind === "weak_lead" && (
+                  <div className="rounded-md border border-[var(--border)] px-3 py-2">
+                    <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Weak leads held</div>
+                    <div className="font-mono">{data.weakLeads.length}</div>
+                  </div>
+                )}
               </>
             )}
             {data.partner.kind === "marketplace" && (
@@ -299,7 +334,7 @@ export default function PartnerConsole() {
             )}
           </div>
 
-          {data.partner.kind !== "marketplace" && (
+          {data.partner.kind === "shield" && (
           <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full text-left text-sm">
               <thead>
@@ -361,6 +396,65 @@ export default function PartnerConsole() {
               </tbody>
             </table>
           </div>)}
+
+          {data.partner.kind === "weak_lead" && (
+            <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                    <th className="px-3 py-2 font-medium">Number to call</th>
+                    <th className="px-3 py-2 font-medium">Shared</th>
+                    <th className="px-3 py-2 font-medium">State</th>
+                    <th className="px-3 py-2 font-medium">Form as filled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.weakLeads.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-4 text-[var(--muted)]">
+                        No weak leads yet — fire a call back from the{" "}
+                        <a className="underline" href="/shield">
+                          FireBack
+                        </a>
+                        .
+                      </td>
+                    </tr>
+                  ) : (
+                    data.weakLeads.map((w) => (
+                      <tr key={w.submissionId} className="border-b border-[var(--border)] align-top">
+                        <td className="px-3 py-2 font-mono">{w.number}</td>
+                        <td className="px-3 py-2 text-[var(--muted)]">{formatTime(w.sharedAt)}</td>
+                        <td className="px-3 py-2">
+                          <span
+                            className="rounded-full border px-2 py-0.5 text-xs"
+                            style={
+                              w.status === "purged"
+                                ? { color: "var(--error)", borderColor: "var(--error)" }
+                                : w.status === "delivered"
+                                  ? { color: "var(--success)", borderColor: "var(--success)" }
+                                  : { color: "var(--warning)", borderColor: "var(--warning)" }
+                            }
+                          >
+                            {w.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <ul className="flex flex-col gap-0.5 font-mono text-xs">
+                            {Object.entries(w.payload).map(([k, val]) => (
+                              <li key={k}>
+                                <span className="text-[var(--muted)]">{k}: </span>
+                                {val}
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {data.partner.kind !== "marketplace" && data.credits.length > 0 && (
             <div>

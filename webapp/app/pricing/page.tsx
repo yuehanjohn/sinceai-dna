@@ -1,21 +1,22 @@
 import Link from "next/link";
+import { PARTNER_FUND_SHARE, PLUS_PRICE_EUR, partnerFundPerSubscriberEur, WEAK_LEAD_SHARE_EUR, fanoutPlan } from "@/lib/shield/channels";
 
 const tiers = [
   {
-    name: "Shield",
+    name: "Detect",
     price: "Free",
-    tagline: "The safety net, for everyone",
+    tagline: "Detection, warnings and the saved number",
     highlight: false,
   },
   {
     name: "Plus",
-    price: "4,99 \u20ac / month",
-    tagline: "The full assistant",
+    price: `${PLUS_PRICE_EUR.toFixed(2).replace(".", ",")} € / month`,
+    tagline: "Fire back, the full assistant, monitoring",
     highlight: true,
   },
   {
     name: "Business",
-    price: "9,90 \u20ac / user / month",
+    price: "9,90 € / user / month",
     tagline: "For small businesses",
     highlight: false,
   },
@@ -31,11 +32,18 @@ const features: { label: string; shield: Cell; plus: Cell; business: Cell }[] =
       plus: true,
       business: true,
     },
-    { label: "Shield log of calls and texts", shield: true, plus: true, business: true },
+    { label: "FireBack log of calls and texts", shield: true, plus: true, business: true },
+    { label: "Auto-save of the detected number", shield: true, plus: true, business: true },
     { label: "Block & report in one tap", shield: true, plus: true, business: true },
     {
-      label: "Opt-in partner offers — earn €2 credit per consented lead",
-      shield: true,
+      label: `Fire back — the caller's number into ${fanoutPlan(false).length} real forms (${fanoutPlan(true).length} for a harasser)`,
+      shield: false,
+      plus: true,
+      business: true,
+    },
+    {
+      label: "Weak-lead trail: who holds the number, and purge notices when it is pulled",
+      shield: false,
       plus: true,
       business: true,
     },
@@ -46,12 +54,18 @@ const features: { label: string; shield: Cell; plus: Cell; business: Cell }[] =
       business: true,
     },
     {
-      label: "Consent-gated monitoring signals (network status, subscriptions, device)",
+      label: "Consent-gated monitoring signals (network, subscriptions, device)",
       shield: false,
       plus: true,
       business: true,
     },
     { label: "Breach checks on your credentials", shield: false, plus: true, business: true },
+    {
+      label: "Opt-in partner offers on your own number — earn €2 credit per consented lead",
+      shield: false,
+      plus: true,
+      business: true,
+    },
     {
       label: "Business portal with shared company view",
       shield: false,
@@ -86,11 +100,16 @@ export default function PricingPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-        Simple pricing, protective by default
+        Free to be warned. Paid to answer back.
       </h1>
       <p className="mt-3 max-w-2xl text-[var(--muted)]">
-        The call shield is free. You pay for the conversation and the watching —
-        and a human is never more than one step away.
+        The free tier detects, warns and saves the number. Plus turns that into action — the caller
+        into {fanoutPlan(false).length} sales pipelines, {fanoutPlan(true).length} if they are a
+        harasser. Business adds the portal and the incident work.{" "}
+        {Math.round(PARTNER_FUND_SHARE * 100)} % of subscription profit — €
+        {partnerFundPerSubscriberEur().toFixed(2)} per Plus subscriber per month — funds the partner
+        network at €{WEAK_LEAD_SHARE_EUR.toFixed(2)} per delivered weak lead. You never pay a
+        partner; your scammer pays nothing at all.
       </p>
 
       {/* Tier cards */}
@@ -124,7 +143,7 @@ export default function PricingPage() {
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left">
               <th className="px-4 py-3 font-medium">Feature</th>
-              <th className="px-4 py-3 font-medium">Shield</th>
+              <th className="px-4 py-3 font-medium">Detect</th>
               <th className="px-4 py-3 font-medium">Plus</th>
               <th className="px-4 py-3 font-medium">Business</th>
             </tr>
@@ -149,28 +168,26 @@ export default function PricingPage() {
       </section>
 
       <p className="mt-6 text-xs text-[var(--muted)]">
-        Prices are packaging placeholders for the challenge demo, not a live
-        commercial offer. The partner network is compensated through a revenue
-        share of subscription profits — see{" "}
+        Packaging placeholders, not a live price list. See{" "}
         <Link href="/partners" className="text-[var(--accent)] hover:underline">
           Partners
         </Link>
-        . Offer credits are earned only on{" "}
+        ; offer credits on{" "}
         <Link href="/offers" className="text-[var(--accent)] hover:underline">
           Offers
         </Link>{" "}
-        by explicitly sharing your own number, and withdraw with you.
+        are the consent path for your own number, and withdraw with you.
       </p>
 
       <div className="mt-12 rounded-xl border border-[var(--border)] p-6 text-center">
         <p className="text-[var(--muted)]">
-          Not sure yet? The free Shield covers every incoming call and text.
+          Not sure yet? The free tier already catches every incoming call and saves the number.
         </p>
         <Link
-          href="/assistant"
+          href="/shield"
           className="mt-4 inline-block rounded-lg bg-[var(--accent)] px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-90"
         >
-          Open the assistant
+          See FireBack
         </Link>
       </div>
     </main>

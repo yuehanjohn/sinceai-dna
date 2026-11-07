@@ -1,4 +1,4 @@
-// Browser-notification helpers for Call Shield detection alerts.
+// Browser-notification helpers for FireBack detection alerts.
 // Client-side only; every function guards SSR and unsupported browsers.
 // The in-app notification centre always works — browser notifications are an
 // enhancement that requires a user gesture to grant permission.
@@ -29,9 +29,23 @@ export async function requestNotificationPermission(): Promise<PermissionState> 
 export function showScamNotification(event: CallEvent): boolean {
   if (!notificationSupported() || Notification.permission !== "granted") return false;
   try {
-    const title = "Possible scam call";
-    const body = `${event.number}${event.warning ? ` — ${event.warning.label}` : ""}`;
+    const title = event.severity === "harasser" ? "Repeated nuisance caller" : "Possible scam call";
+    const body = `${event.number}${event.warning ? ` — ${event.warning.label}` : ""}. Number auto-saved.`;
     new Notification(title, { body, tag: `dna-shield-${event.id}` });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Confirm the fan-out landed: how many forms went out on the caller's behalf. */
+export function showFireBackNotification(number: string, targets: number): boolean {
+  if (!notificationSupported() || Notification.permission !== "granted") return false;
+  try {
+    new Notification("Fired back", {
+      body: `${number} is now in ${targets} sales pipelines. Have fun.`,
+      tag: `dna-fireback-${number}`,
+    });
     return true;
   } catch {
     return false;

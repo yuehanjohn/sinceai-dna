@@ -1,41 +1,42 @@
 import Link from "next/link";
 import MisuseConsole from "@/components/MisuseConsole";
+import { fanoutPlan, WEAK_LEAD_SHARE_EUR } from "@/lib/shield/channels";
 
-const neverDo = [
+const boundaries = [
   {
-    title: "Post numbers publicly",
-    desc: "The service never publishes scam or reported numbers on public pages, social media or comment threads.",
+    title: "The assistant advises, it does not act",
+    desc: "Ask it about a call and you get words: what happened, what to do. It refuses to identify, expose or trace anyone — and it says so.",
   },
   {
-    title: "Submit third parties to sales or lead forms",
-    desc: "Reported numbers are never entered into sales, marketing or lead-generation forms of any organisation.",
+    title: "FireBack acts, and says so",
+    desc: `Firing back fills ${fanoutPlan(false).length} partner forms with the caller's number, ${fanoutPlan(true).length} for a harasser — outreach the caller never agreed to.`,
   },
   {
-    title: "Sign anyone up for services",
-    desc: "The service never subscribes, orders or enrolls any person — reported or not — into any service.",
+    title: "Nothing is sent without your tap",
+    desc: "The number is auto-saved on detection. Pushing it into the sales field is a decision, so it stays behind one deliberate click.",
   },
   {
-    title: "Coordinate harassment",
-    desc: "The service never organises calls, texts, posts or campaigns directed at another person.",
+    title: "Every recipient is a system, not a mystery",
+    desc: "Each channel holds an API key, pulls its leads from the same cursor-based feed, and gets a purge when a lead is withdrawn.",
   },
 ];
 
-const legitimateRoutes = [
+const enforcement = [
   {
-    title: "Block on device",
-    desc: "The fastest first step: block the number on the device and stop engaging with the conversation.",
+    title: "A false report costs a strike",
+    desc: "If a partner verifies your reported number as legitimate, the report is voided, the credited share reversed and you take a false-report strike.",
   },
   {
-    title: "Operator network report",
-    desc: "Report the number through the assistant — a verified, consent-based report to the operator feeds network-level blocking.",
+    title: "Three strikes in 90 days suspend the account",
+    desc: "Outbound reporting and firing back lock. You can still withdraw and reduce contact while suspended.",
   },
   {
-    title: "Traficom report",
-    desc: "Phishing and fraud campaigns are reported to Traficom, the National Cyber Security Centre.",
+    title: "Suspension purges what you sent out",
+    desc: "Every number you fired back is purged, every weak-lead share reversed, and a removal notice drafted to every partner holding it.",
   },
   {
-    title: "Police report",
-    desc: "Where a crime has happened, the assistant helps you prepare the facts for a police report.",
+    title: "The notice is a real GDPR request, not an apology",
+    desc: "The draft cites Art. 17(1)(b)–(c) and Art. 19: the processing lost its basis, so the recipients must delete.",
   },
 ];
 
@@ -43,27 +44,20 @@ export default function MisusePage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-        The service refuses retaliation
+        We hand your caller to {fanoutPlan(false).length} partners. Here is the guardrail.
       </h1>
       <p className="mt-3 max-w-2xl text-[var(--muted)]">
-        Being scammed is painful, and the wish to hit back is real. The DNA
-        Security Assistant is built to protect the person who reports — it is
-        not a tool for taking action against a third party. It will refuse any
-        request to retaliate, and it says so plainly.
+        Answering back has consequences — for the caller, for the partners, and for you if you abuse
+        it. The guardrails are explicit and enforced by code.
       </p>
 
-      {/* Refused actions */}
+      {/* Boundaries */}
       <section className="mt-12">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          What it will not do
-        </h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Where the line is</h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {neverDo.map((n) => (
-            <div
-              key={n.title}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6"
-            >
-              <h3 className="font-medium text-[var(--error)]">{n.title}</h3>
+          {boundaries.map((n) => (
+            <div key={n.title} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
+              <h3 className="font-medium text-[var(--accent)]">{n.title}</h3>
               <p className="mt-2 text-sm text-[var(--muted)]">{n.desc}</p>
             </div>
           ))}
@@ -73,34 +67,51 @@ export default function MisusePage() {
       {/* Consequences */}
       <section className="mt-12 rounded-xl border-2 border-[var(--warning)] bg-[var(--surface)] p-6">
         <h2 className="font-semibold text-[var(--warning)]">
-          What happens if misuse is attempted
+          What happens if the fan-out is abused
         </h2>
         <p className="mt-3 text-sm">
-          When the service detects an attempt to use it for retaliation, the
-          account is suspended — and a notification is drafted to partner
-          organisations to remove related reports from their databases.
-        </p>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Reports made in bad faith do not keep protecting anyone. They are
-          pulled back, so a false report never becomes a permanent record.
-        </p>
-      </section>
-
-      {/* Legitimate routes */}
-      <section className="mt-12">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          What to do instead
-        </h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Every one of these routes is proportionate, official and effective —
-          the assistant will walk you through it.
+          Fire back at everything and the leads stop being worth anything: the sales side pays €
+          {WEAK_LEAD_SHARE_EUR.toFixed(2)} per delivered lead, so junk numbers get pulled back.
+          Suspension is the mechanism — and it sends a real removal request to remove this phone
+          number from the partner&#39;s database, not a note in a log.
         </p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {legitimateRoutes.map((r) => (
-            <div
-              key={r.title}
-              className="rounded-xl border border-[var(--border)] p-6"
-            >
+          {enforcement.map((r) => (
+            <div key={r.title} className="rounded-xl border border-[var(--border)] p-6">
+              <h3 className="font-medium text-[var(--warning)]">{r.title}</h3>
+              <p className="mt-2 text-sm text-[var(--muted)]">{r.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* The legitimate routes stay */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-semibold tracking-tight">Firing back does not replace reporting</h2>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
+          Annoying a caller is not the same as telling on them. FireBack also drafts the official
+          trail — nothing auto-sent:
+        </p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {[
+            {
+              title: "Operator network filter",
+              desc: "A structured nuisance-call report so the number joins the network-level blocklist.",
+            },
+            {
+              title: "Traficom",
+              desc: "The National Cyber Security Centre gets the campaign view, in the call's own language.",
+            },
+            {
+              title: "Police evidence pack",
+              desc: "Call time, network warning, engine classification and the caller's story, ready to annex to a report you file.",
+            },
+            {
+              title: "Blocklist partners",
+              desc: "Verified high/critical reports reach network filtering partners, who can block before the next customer picks up.",
+            },
+          ].map((r) => (
+            <div key={r.title} className="rounded-xl border border-[var(--border)] p-6">
               <h3 className="font-medium text-[var(--success)]">{r.title}</h3>
               <p className="mt-2 text-sm text-[var(--muted)]">{r.desc}</p>
             </div>
@@ -112,9 +123,8 @@ export default function MisusePage() {
       <section className="mt-12">
         <h2 className="text-2xl font-semibold tracking-tight">How enforcement works, live</h2>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          The policy above is enforced by code, not promises. Below is the demo account&apos;s
-          actual standing: strikes from partner-verified false reports, the resulting
-          suspension, and the removal notices automatically drafted to partners.
+          The demo account&#39;s real standing: strikes, the resulting suspension, the numbers purged
+          and the removal notices drafted because of it.
         </p>
         <div className="mt-6">
           <MisuseConsole />
@@ -123,14 +133,13 @@ export default function MisusePage() {
 
       <div className="mt-12 rounded-xl border border-[var(--border)] p-6 text-center">
         <p className="text-[var(--muted)]">
-          The call shield reports and blocks within your own device and network
-          — see how it works.
+          Fire a call back first, then come break it on purpose.
         </p>
         <Link
           href="/shield"
           className="mt-4 inline-block rounded-lg bg-[var(--accent)] px-5 py-2.5 font-medium text-white transition-opacity hover:opacity-90"
         >
-          See the call shield
+          See FireBack
         </Link>
       </div>
     </main>

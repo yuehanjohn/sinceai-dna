@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildFeed } from "@/lib/shield/feed";
+import { promoteDue } from "@/lib/shield/fanout";
 import { partnerByApiKey } from "@/lib/shield/partners";
-import { readState } from "@/lib/shield/store";
+import { mutate, readState } from "@/lib/shield/store";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   const key = req.headers.get("x-partner-key") ?? "";
+  await mutate((s) => promoteDue(s, new Date().toISOString()));
   const s = await readState();
   const partner = partnerByApiKey(s, key);
   if (!partner) {

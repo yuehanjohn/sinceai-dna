@@ -21,6 +21,14 @@ interface MisuseData {
   strikeLimit: number;
   strikeWindowDays: number;
   reports: MyReport[];
+  submissions: {
+    id: string;
+    number: string;
+    channelName: string;
+    channelKind: string;
+    status: string;
+    purgedAt: string | null;
+  }[];
   notices: RemovalNotice[];
 }
 
@@ -108,9 +116,9 @@ export default function MisuseConsole() {
         <div>
           <h3 className="font-medium">Moderation console (demo)</h3>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            False reports are detected when a partner verifies the number as legitimate. Three
-            strikes within {data?.strikeWindowDays ?? 90} days suspend the account, pull every
-            report back with removal notices and withdraw your active offer consents.
+            A partner verifying your number as legitimate is a false report. Three strikes within{" "}
+            {data?.strikeWindowDays ?? 90} days suspend the account: reports pulled back, fired-back
+            numbers purged, removal notices drafted to each holder, offer consents withdrawn.
           </p>
         </div>
         <span
@@ -153,7 +161,7 @@ export default function MisuseConsole() {
               <p className="mt-2 text-sm text-[var(--muted)]">
                 No reports yet — report a call from the{" "}
                 <Link href="/shield" className="underline">
-                  Call Shield
+                  FireBack
                 </Link>{" "}
                 log first.
               </p>
@@ -202,6 +210,32 @@ export default function MisuseConsole() {
               </div>
             )}
           </div>
+
+          {data.submissions.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                Fired-back numbers ({data.submissions.filter((s) => s.status === "purged").length} purged of{" "}
+                {data.submissions.length})
+              </h4>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Every number the account sent out is listed here. On suspension each line is purged
+                and its partner gets a removal notice — a weak lead is not a lifetime subscription.
+              </p>
+              <ul className="mt-2 flex max-h-64 flex-col gap-1 overflow-y-auto font-mono text-xs">
+                {data.submissions.map((s) => (
+                  <li key={s.id} className="flex justify-between gap-3 rounded-md border border-[var(--border)] px-3 py-1.5">
+                    <span className="truncate">
+                      {s.number} · {s.channelName}
+                    </span>
+                    <span style={{ color: s.status === "purged" ? "var(--error)" : "var(--muted)" }}>
+                      {s.status}
+                      {s.purgedAt ? ` ${new Date(s.purgedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {data.notices.length > 0 && (
             <div>

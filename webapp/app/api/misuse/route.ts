@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { promoteDue } from "@/lib/shield/fanout";
 import { STRIKE_LIMIT, STRIKE_WINDOW_DAYS } from "@/lib/shield/misuse";
-import { readState, resetStore, standingOf } from "@/lib/shield/store";
+import { mutate, readState, resetStore, standingOf } from "@/lib/shield/store";
 import { DEMO_ACTOR_ID } from "@/lib/shield/types";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/misuse — the demo account's standing, its reports and every drafted removal notice. */
+/** GET /api/misuse — the demo account's standing, its reports, its fired-back
+ * submissions and every drafted removal notice. */
 export async function GET() {
+  await mutate((s) => promoteDue(s, new Date().toISOString()));
   const s = await readState();
   const myReports = s.reports
     .filter((r) => r.reporterId === DEMO_ACTOR_ID)
@@ -25,6 +28,7 @@ export async function GET() {
     strikeLimit: STRIKE_LIMIT,
     strikeWindowDays: STRIKE_WINDOW_DAYS,
     reports: myReports,
+    submissions: s.submissions.filter((sub) => sub.actorId === DEMO_ACTOR_ID),
     notices: s.notices,
   });
 }

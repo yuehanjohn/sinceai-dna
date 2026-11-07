@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DEMO_CALL_EVENTS } from "@/lib/callEvents";
+import { WEAK_LEAD_SHARE_EUR } from "@/lib/shield/channels";
+import { promoteDue } from "@/lib/shield/fanout";
 import { applyPartnerOutcome, exchangeableReports, type MisuseResult } from "@/lib/shield/misuse";
 import { partnerCommissionTotal } from "@/lib/shield/leads";
 import {
@@ -43,20 +45,37 @@ export async function GET(req: NextRequest) {
   if (!partner) {
     return NextResponse.json({ error: "Unknown partnerId" }, { status: 400 });
   }
+  await mutate((st) => promoteDue(st, new Date().toISOString()));
   const s = await readState();
   const outcomesByPartner = new Map<string, PartnerOutcomeKind>();
   for (const o of s.outcomes.filter((o) => o.partnerId === partnerId)) {
     outcomesByPartner.set(o.reportId, o.outcome);
   }
-  // Marketplace partners consume the consent-based lead feed only.
+  // Shield partners consume the verified exchange; weak-lead partners consume
+  // the fired-back numbers they were sent; marketplace partners the consents.
   const signals = (partner.kind === "shield" ? exchangeableReports(s) : []).map((r) =>
     toView(r, outcomesByPartner),
   );
+  const weakLeads =
+    partner.kind === "weak_lead"
+      ? s.submissions
+          .filter((sub) => sub.channelId === partnerId)
+          .map((sub) => ({
+            submissionId: sub.id,
+            number: sub.number,
+            sharedAt: sub.createdAt,
+            deliverAt: sub.deliverAt,
+            status: sub.status,
+            payload: sub.payload,
+          }))
+      : [];
   const credits = s.credits.filter((c) => c.partnerId === partnerId);
   return NextResponse.json({
     // Never expose the feed API key through the unauthenticated console endpoint.
     partner: { id: partner.id, name: partner.name, role: partner.role, kind: partner.kind },
     signals,
+    weakLeads,
+    weakLeadShareEur: WEAK_LEAD_SHARE_EUR,
     credits,
     totalEur: partnerTotalCredits(s.credits, partnerId),
     creditPerVerifiedSignalEur: VERIFIED_SIGNAL_CREDIT_EUR,
@@ -86,7 +105,10 @@ export async function POST(req: NextRequest) {
     }
     if (partner.kind !== "shield") {
       return NextResponse.json(
-        { error: "Marketplace partners consume the consent-based lead feed only" },
+        {
+          error:
+            "Only blocklist (shield) partners post outcomes — weak-lead partners just hold the fired-back numbers, consent partners hold their own leads",
+        },
         { status: 400 },
       );
     }

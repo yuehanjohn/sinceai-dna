@@ -1,9 +1,12 @@
 // Partner exchange: registry, the deterministic verification rule that decides
 // which user reports are eligible for partner consumption, and the revenue-
-// share ledger rule. Partners are paid per *verified threat signal* they act
-// on — never for spamming targets (see /misuse). Lead commerce is separate
-// (lib/shield/leads.ts): a partner may only receive a number the user chose to
-// share for offers, with a reward for the user and withdrawal rights.
+// share ledger rule. Two kinds of partner value are paid out of *subscription
+// profit* (see channels.ts):
+//   - verified threat signals a shield partner acts on (network blocking),
+//   - weak leads a fire-back partner works (the caller who scammed someone).
+// Lead commerce is separate (lib/shield/leads.ts): a marketplace partner may
+// only receive a number the user chose to share for offers, with a reward for
+// the user and withdrawal rights.
 
 import type {
   CreditEntry,
@@ -12,10 +15,13 @@ import type {
   ShieldStoreState,
 } from "./types";
 import { DEMO_ACTOR_ID } from "./types";
+import { FANOUT_CHANNELS } from "./channels";
 
 /** What the partner consumes: "shield" = verified scam signals for blocking,
- * "marketplace" = consent-based leads the user chose to share for a reward. */
-export type PartnerKind = "shield" | "marketplace";
+ * "weak_lead" = a fired-back caller's number to call (unconsented, paid from
+ * the subscription profit share), "marketplace" = consent-based leads the user
+ * chose to share for a reward. */
+export type PartnerKind = "shield" | "weak_lead" | "marketplace";
 
 export interface PartnerInfo {
   id: string;
@@ -34,11 +40,19 @@ export const DEMO_PARTNERS: PartnerInfo[] = [
   { id: "consumer-blocklist-alliance", name: "Consumer blocklist alliance", role: "Cross-operator sharing", kind: "shield", apiKey: "pfk-demo-consumer-blocklist-alliance-6b27" },
   { id: "market-homelistings", name: "HomeListings kiinteistönvälitys", role: "Real-estate offers — consent-based leads only", kind: "marketplace", apiKey: "pfk-demo-market-homelistings-4d15" },
   { id: "market-solaroffers", name: "SolarOffers Finland", role: "Home-energy offers — consent-based leads only", kind: "marketplace", apiKey: "pfk-demo-market-solaroffers-8e62" },
+  // Fan-out recipients are partners too: they are the ones paid for working the
+  // weak leads, so they belong in the same registry as the blocklist partners.
+  ...FANOUT_CHANNELS.map((c): PartnerInfo => ({ id: c.id, name: c.name, role: c.role, kind: "weak_lead", apiKey: c.apiKey })),
 ];
 
 /** Partners that consume the verified scam-signal feed. */
 export function shieldPartners(): PartnerInfo[] {
   return DEMO_PARTNERS.filter((p) => p.kind === "shield");
+}
+
+/** Partners that receive fired-back numbers as weak leads. */
+export function weakLeadPartners(): PartnerInfo[] {
+  return DEMO_PARTNERS.filter((p) => p.kind === "weak_lead");
 }
 
 /** Partners that may receive leads — and only numbers a user explicitly consented to share. */

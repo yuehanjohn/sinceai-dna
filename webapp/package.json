@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "eval:gen": "node scripts/gen-submissions.mjs"
+    "eval:gen": "node --experimental-strip-types scripts/gen-submissions.ts"
   },
   "dependencies": {
     "next": "^15.5.4",

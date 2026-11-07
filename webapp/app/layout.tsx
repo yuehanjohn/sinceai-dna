@@ -3,9 +3,9 @@ import Nav from "@/components/Nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DNA Security Assistant",
+  title: "FireBack — detect the scam, then fire back",
   description:
-    "Digital Security Assistant for consumers and small businesses — turn a worrying message, call or device event into one clear, proportionate next step.",
+    "FireBack is the Digital Security Assistant for consumers and small businesses: one clear next step — plus a one-tap fire back into the Finnish sales economy.",
 };
 
 export default function RootLayout({

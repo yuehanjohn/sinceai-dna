@@ -21,6 +21,7 @@ function emptyState(): ShieldStoreState {
     actions: [],
     saved: [],
     reports: [],
+    submissions: [],
     outcomes: [],
     credits: [],
     strikes: [],

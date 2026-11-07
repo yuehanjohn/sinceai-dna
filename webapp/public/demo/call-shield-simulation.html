@@ -1,0 +1,1311 @@
+<!doctype html>
+<!-- hallmark · call-shield-simulation · scope: app · tokens: webapp/app/globals.css · theme: product-dark (by request) -->
+<!-- critique: split-screen simulation, phone left / systems right; JSON logs verbatim from webapp/lib engine + shield; timeline ends on the fire-back fan-out (stage 08) -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FireBack: live call simulation</title>
+<meta name="description" content="Interactive simulation: how a FireBack client experiences a suspected-scam call, synced with the engine and shield pipeline behind it — ending with fire back: one tap turns the caller into a weak lead.">
+<style>
+/* Hallmark · v2.0.0 · call-shield simulation · shape: app screen · genre: modern-minimal · theme: product-dark (by request, webapp tokens) · surface: absolute · posture: restrained · hero: the incoming call with its network warning, phone left, systems pipeline right · nav: header row with title and playback controls · footer: sources, keyboard hints · copy: verbatim (engine decisions, report drafts, API payloads are quoted code output) · signature: the synced phone and pipeline simulation */
+/* critique: phone left, systems right; JSON logs verbatim engine output; sweep: sloplint app scope clean · fire-back pass (stage 08, one-tap fire-back action + fan-out board, guarantees rewritten, stale advance-timer guard) */
+/* Hallmark · waive 24b · optical pill padding · .cite, .status-chip, .kbd and .dot keep sub-4px chip padding */
+/* Hallmark · dismissed 29 · iOS notification banners keep platform glass · device fidelity */
+/* Hallmark · dismissed F4 · the call screen keeps its two filled platform buttons · device fidelity */
+/* Hallmark · dismissed 49 · action and stage labels wrap by design on narrow panels · responsive intent */
+/* Hallmark · waive 39b · dense log panel · stage heads are 25px text rows inside a scrolling log; the whole row is the hit target, not the text line */
+/* Hallmark · waive 75 · device scale · 10.5px is the iOS home-screen label size at this device scale, not running text */
+/* Hallmark · dismissed F19 · 400 and 600 run the page; 500 marks future stages and 700 the risk chip, both deliberate */
+/* copy: verbatim — engine decisions, report drafts and API payloads are quoted code output */
+:root {
+  --bg: #0b0f17;
+  --foreground: #e8edf5;
+  --surface: #131a26;
+  --surface-2: #182236;
+  --border: #232d3f;
+  --muted: #8b98ab;
+  --accent: #4f8ef7;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --phone-bg: #05070c;
+  --phone-frame: #2a3648;
+  --sky: #38bdf8;
+  --call-screen-top: #170c10;
+  --glass: rgba(19, 26, 38, .82);
+  --glass-strong: rgba(19, 26, 38, .88);
+  --edge-light: rgba(255, 255, 255, .06);
+  --dock-tint: rgba(255, 255, 255, .05);
+  --shadow-phone: 0 24px 60px rgba(0, 0, 0, .5);
+  --shadow-banner: 0 10px 28px rgba(0, 0, 0, .45);
+  --code-key: var(--accent);
+  --code-str: var(--success);
+  --code-num: var(--warning);
+  --code-bool: var(--muted);
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Courier New", monospace;
+  --ease: cubic-bezier(.32, .72, .28, 1);
+  --dur: 320ms;
+}
+
+/* ============ floor ============ */
+html, body { overflow-x: clip; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--foreground);
+  font: 100%/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+button { font: inherit; color: inherit; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation: none !important; }
+  html { scroll-behavior: auto; }
+}
+
+/* ============ shell ============ */
+.stage { max-width: 1240px; margin: 0 auto; padding: 24px 28px 32px; }
+header.top {
+  display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-end;
+  justify-content: space-between; margin-bottom: 16px;
+}
+.kicker { font-size: 13px; color: var(--muted); margin: 0 0 4px; }
+h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.sub { font-size: 13.5px; color: var(--muted); margin: 8px 0 0; max-width: 58ch; }
+.sub strong { color: var(--foreground); font-weight: 600; }
+
+.controls { display: flex; align-items: center; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; font-size: 13px; cursor: pointer;
+  transition: transform 100ms var(--ease), border-color 160ms var(--ease), background-color 160ms var(--ease);
+}
+.btn:hover { border-color: var(--accent); }
+.btn:active { transform: scale(.97); }
+.action-btn:disabled { opacity: .6; cursor: default; }
+.action-btn:disabled:hover { border-color: color-mix(in oklab, var(--success) 45%, transparent); }
+.btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+.btn.icon { padding: 8px; }
+
+.dots { display: flex; gap: 8px; margin-left: 8px; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%; padding: 0; cursor: pointer;
+  background: var(--border); border: 1px solid var(--border);
+  transition: background-color 200ms var(--ease), transform 200ms var(--ease);
+}
+.dot.done { background: var(--muted); }
+.dot.now { background: var(--accent); border-color: var(--accent); transform: scale(1.25); }
+
+.split { display: grid; grid-template-columns: minmax(330px, 400px) minmax(0, 1fr); gap: 32px; align-items: start; }
+.split > * { min-width: 0; }
+
+.pane-label { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+.pane-label strong { color: var(--foreground); font-weight: 600; }
+
+/* ============ phone ============ */
+.phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.phone {
+  width: 316px; padding: 12px; border-radius: 48px;
+  background: var(--phone-frame);
+  box-shadow: var(--shadow-phone), inset 0 0 0 1.5px var(--edge-light);
+  position: relative;
+}
+.screen-shell {
+  position: relative; height: 642px; border-radius: 38px; overflow: clip;
+  background: var(--phone-bg);
+}
+.island {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  width: 92px; height: 26px; border-radius: 20px; background: var(--phone-bg); z-index: 40;
+}
+.statusbar {
+  position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 30;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; font-size: 13px; font-weight: 600;
+}
+.statusbar svg { width: 60px; height: 12px; }
+.scr {
+  position: absolute; inset: 0; padding: 56px 16px 16px;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), display var(--dur) allow-discrete;
+  display: flex; flex-direction: column;
+}
+html.js .scr { opacity: 0; transform: scale(1.02); pointer-events: none; display: none; }
+html.js .scr.on { opacity: 1; transform: scale(1); pointer-events: auto; display: flex; }
+html:not(.js) .scr:not(#scr-home) { display: none; }
+
+/* home */
+.clock { text-align: center; margin-top: 52px; }
+.clock .t { font-size: 54px; font-weight: 250; letter-spacing: -0.02em; }
+.clock .d { font-size: 14px; color: var(--muted); margin-top: 2px; }
+.apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 16px; margin-top: auto; margin-bottom: 28px; }
+.app { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10.5px; color: var(--muted); }
+.app .ic {
+  width: 52px; height: 52px; border-radius: 13px; display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.app .ic svg { width: 24px; height: 24px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.app.dna .ic { background: var(--accent); border-color: var(--accent); }
+.app.dna .ic svg { stroke: var(--bg); stroke-width: 2.2; }
+.app.dna { color: var(--foreground); }
+.dock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 12px 8px; border-radius: 22px; background: var(--dock-tint); }
+
+/* incoming */
+.call-screen { background: linear-gradient(180deg, var(--call-screen-top) 0%, var(--phone-bg) 55%); }
+.caller-block { text-align: center; margin-top: 36px; }
+.caller-kind { font-size: 14px; color: var(--muted); }
+.caller-num { font-size: 26px; font-weight: 600; letter-spacing: .01em; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.warn-chip {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 16px;
+  padding: 8px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  color: var(--error); background: color-mix(in oklab, var(--error) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--error) 42%, transparent);
+  max-width: 100%; text-align: left;
+}
+.warn-chip .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--error); animation: pulse 1.6s ease-in-out infinite; flex: none; }
+@keyframes pulse { 50% { opacity: .35; } }
+.warn-note { font-size: 12px; color: var(--muted); margin: 8px auto 0; max-width: 32ch; text-wrap: balance; line-height: 1.45; }
+.call-actions { margin-top: auto; margin-bottom: 28px; display: flex; justify-content: space-evenly; }
+.call-btn {
+  width: 64px; height: 64px; border-radius: 50%; border: none; cursor: pointer;
+  display: grid; place-items: center; color: var(--foreground);
+  transition: transform 120ms var(--ease);
+}
+.call-btn:active { transform: scale(.94); }
+.call-btn svg { width: 26px; height: 26px; }
+.call-btn.decline { background: var(--error); }
+.call-btn.accept { background: var(--success); }
+.call-btn-label { text-align: center; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.call-col { display: flex; flex-direction: column; align-items: center; }
+
+/* in-call */
+.incall-head { text-align: center; margin-top: 8px; }
+#scr-call.pushed .incall-head { padding-top: 92px; }
+.incall-num { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.incall-warn { display: flex; justify-content: center; margin-top: 8px; }
+.timer { font-size: 13px; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+.compress { font-size: 10px; color: var(--muted); opacity: .7; margin-left: 8px; }
+.transcript { margin-top: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; scrollbar-width: none; }
+.transcript::-webkit-scrollbar { display: none; }
+.bub {
+  max-width: 86%; padding: 8px 12px; border-radius: 14px; font-size: 12.5px; line-height: 1.45;
+  transition: opacity 260ms var(--ease), transform 260ms var(--ease);
+}
+html.js .bub { opacity: 0; transform: translateY(8px) scale(.97); }
+html.js .bub.in { opacity: 1; transform: none; }
+.bub.caller { background: var(--surface-2); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 5px; }
+.bub.user { background: color-mix(in oklab, var(--accent) 22%, var(--surface)); border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent); align-self: flex-end; border-bottom-right-radius: 5px; }
+.bub .gloss { display: block; font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+.sms-banner {
+  position: absolute; top: 48px; left: 10px; right: 10px; z-index: 20;
+  background: var(--glass); border: 1px solid var(--border); border-radius: 14px;
+  padding: 8px 12px; font-size: 12px; line-height: 1.4;
+  backdrop-filter: blur(14px) saturate(160%);
+  transition: opacity 300ms var(--ease), transform 300ms var(--ease);
+}
+html.js .sms-banner { opacity: 0; transform: translateY(-14px); }
+html.js .sms-banner.in { opacity: 1; transform: none; }
+.sms-banner .from { font-weight: 600; font-size: 11.5px; }
+.sms-banner .when { color: var(--muted); font-size: 10.5px; margin-left: 4px; }
+.sms-banner .code { color: var(--warning); font-weight: 600; letter-spacing: .06em; }
+.call-end {
+  align-self: center; margin-top: 8px; font-size: 11px; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+  opacity: 0; transition: opacity 240ms var(--ease);
+}
+.call-end.in { opacity: 1; }
+
+/* assistant */
+.app-head { display: flex; align-items: center; gap: 8px; padding: 4px 0 12px; border-bottom: 1px solid var(--border); }
+.app-head .name { font-size: 15px; font-weight: 600; }
+.app-head svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.chat { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 12px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; padding-bottom: 8px; }
+.msg { max-width: 88%; padding: 8px 12px; border-radius: 15px; font-size: 13px; line-height: 1.5; transition: opacity 260ms var(--ease), transform 260ms var(--ease); }
+html.js .msg { opacity: 0; transform: translateY(8px) scale(.97); }
+html.js .msg.in { opacity: 1; transform: none; }
+.msg.assistant { background: var(--surface-2); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 5px; }
+.msg.user { background: color-mix(in oklab, var(--accent) 24%, var(--surface)); border: 1px solid color-mix(in oklab, var(--accent) 42%, transparent); align-self: flex-end; border-bottom-right-radius: 5px; }
+.msg .gloss { display: block; font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+.typing { display: inline-flex; gap: 4px; padding: 8px 12px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: blink 1.1s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: .18s; }
+.typing i:nth-child(3) { animation-delay: .36s; }
+@keyframes blink { 50% { opacity: .25; } }
+
+.decision-card {
+  align-self: stretch; border: 1px solid color-mix(in oklab, var(--error) 55%, transparent);
+  background: color-mix(in oklab, var(--error) 8%, var(--surface));
+  border-radius: 16px; padding: 8px 12px;
+  transition: opacity 320ms var(--ease), transform 320ms var(--ease);
+}
+html.js .decision-card { opacity: 0; transform: translateY(10px) scale(.98); }
+html.js .decision-card.in { opacity: 1; transform: none; }
+.dc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.risk-chip { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 999px; color: var(--bg); background: var(--error); letter-spacing: .02em; }
+.urg-chip { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 999px; color: var(--warning); background: color-mix(in oklab, var(--warning) 14%, transparent); border: 1px solid color-mix(in oklab, var(--warning) 40%, transparent); }
+.conf-chip { font-size: 11px; color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.dc-advice { font-size: 12px; line-height: 1.45; margin-top: 8px; }
+.dc-steps { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.dc-steps li { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; line-height: 1.4; transition: opacity 240ms var(--ease), transform 240ms var(--ease); }
+html.js .dc-steps li { opacity: 0; transform: translateX(-6px); }
+html.js .dc-steps li.in { opacity: 1; transform: none; }
+.dc-steps li svg { width: 14px; height: 14px; flex: none; margin-top: 2px; stroke: var(--muted); fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.dc-steps li.done svg { stroke: var(--success); }
+.dc-steps li.violated svg { stroke: var(--warning); }
+.dc-steps li.violated { color: var(--muted); }
+.dc-steps li.violated .strike { text-decoration: line-through; text-decoration-color: color-mix(in oklab, var(--warning) 70%, transparent); }
+.dc-cites { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.cite { font-size: 10.5px; font-family: var(--mono); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; }
+.escalate-card {
+  align-self: stretch; display: flex; align-items: center; gap: 8px;
+  border: 1px solid color-mix(in oklab, var(--success) 45%, transparent);
+  background: color-mix(in oklab, var(--success) 9%, var(--surface));
+  border-radius: 14px; padding: 12px 12px; font-size: 12.5px;
+  transition: opacity 300ms var(--ease), transform 300ms var(--ease);
+}
+html.js .escalate-card { opacity: 0; transform: translateY(10px); }
+html.js .escalate-card.in { opacity: 1; transform: none; }
+.escalate-card svg { width: 17px; height: 17px; stroke: var(--success); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.escalate-card .state { color: var(--muted); font-size: 11px; display: block; margin-top: 1px; }
+
+/* shield */
+.shield-row {
+  border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 8px;
+  background: var(--surface-2);
+}
+.shield-row .num { font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.shield-row .meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.status-chip { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 1px; }
+.status-chip.ok { color: var(--success); background: color-mix(in oklab, var(--success) 13%, transparent); border: 1px solid color-mix(in oklab, var(--success) 38%, transparent); }
+.status-chip.busy { color: var(--accent); background: color-mix(in oklab, var(--accent) 13%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 38%, transparent); }
+.status-chip.idle { color: var(--muted); border: 1px solid var(--border); }
+.action-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.action-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
+  padding: 12px; font-size: 12.5px; cursor: pointer;
+  transition: transform 120ms var(--ease), border-color 160ms var(--ease);
+}
+.action-btn:hover { border-color: var(--accent); }
+.action-btn:active { transform: scale(.98); }
+.action-btn svg { width: 15px; height: 15px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.action-btn.done { border-color: color-mix(in oklab, var(--success) 45%, transparent); }
+.action-btn.done svg { stroke: var(--success); }
+.action-btn .chip { margin-left: auto; }
+.action-btn.fire { border-color: color-mix(in oklab, var(--accent) 55%, transparent); background: color-mix(in oklab, var(--accent) 10%, var(--surface)); }
+.action-btn.fire svg { stroke: var(--accent); }
+.action-btn.fire.done { border-color: color-mix(in oklab, var(--success) 45%, transparent); }
+.action-btn.fire.done svg { stroke: var(--success); }
+.shield-scroll { margin-top: 12px; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 8px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.fanout-board {
+  display: none; margin-top: 12px; padding: 8px 12px 12px; border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+  background: color-mix(in oklab, var(--accent) 7%, var(--surface));
+}
+.fanout-board.open { display: block; }
+.fb-kicker { font-size: 11px; font-weight: 600; color: var(--accent); margin: 0 0 4px; }
+.fb-line { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; color: var(--muted); padding: 4px 0; transition: opacity 240ms var(--ease), transform 240ms var(--ease); }
+html.js .fb-line { opacity: 0; transform: translateY(4px); }
+html.js .fb-line.in { opacity: 1; transform: none; }
+.fb-line .st { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--warning); font-variant-numeric: tabular-nums; }
+.fb-line.delivered .st { color: var(--success); }
+.fb-line.off .st { color: var(--muted); }
+.fb-count { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--border); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fb-count .fine { display: block; font-weight: 400; font-size: 10.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.draft-panel {
+  margin-top: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 12px; background: var(--phone-bg);
+  overflow: hidden; display: none;
+}
+.draft-panel.open { display: block; }
+.draft-panel .dp-head { padding: 8px 12px 8px; font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--border); }
+.draft-panel pre { margin: 0; padding: 12px; font-family: var(--mono); font-size: 10.5px; line-height: 1.55; color: var(--muted); max-height: 168px; overflow-y: auto; white-space: pre-wrap; }
+.draft-panel .dp-note { padding: 8px 12px 12px; font-size: 10.5px; color: var(--warning); border-top: 1px solid var(--border); }
+.toast {
+  position: absolute; left: 14px; right: 14px; bottom: 20px; z-index: 35;
+  background: var(--glass-strong); border: 1px solid color-mix(in oklab, var(--success) 45%, transparent);
+  border-radius: 13px; padding: 12px; font-size: 11.5px; line-height: 1.45;
+  backdrop-filter: blur(14px); opacity: 0; transform: translateY(12px);
+  transition: opacity 300ms var(--ease), transform 300ms var(--ease);
+}
+.toast.in { opacity: 1; transform: none; }
+.toast .t-from { font-weight: 600; font-size: 11px; color: var(--success); }
+
+/* ============ behind the scenes ============ */
+.bts {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 16px 16px 12px; max-height: min(724px, calc(100vh - 170px)); overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.bts-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.bts-head h2 { font-size: 16px; font-weight: 650; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.legend { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 16px; }
+.legend .lg { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.lg.t-net { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 40%, transparent); }
+.lg.t-shield { color: var(--sky); border-color: color-mix(in oklab, var(--sky) 40%, transparent); }
+.lg.t-engine { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 40%, transparent); }
+.lg.t-api { color: var(--muted); }
+.lg.t-partner { color: var(--success); border-color: color-mix(in oklab, var(--success) 40%, transparent); }
+
+.stages { position: relative; padding-left: 24px; }
+.stages::before {
+  content: ""; position: absolute; left: 8px; top: 8px; bottom: 8px; width: 2px;
+  background: var(--border); border-radius: 2px;
+}
+.stage { position: relative; padding: 12px 0 16px; }
+.stage .node {
+  position: absolute; left: -24px; top: 16px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--border); z-index: 1;
+  transition: border-color 240ms var(--ease), background-color 240ms var(--ease), box-shadow 240ms var(--ease);
+}
+.stage.now .node { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent); }
+.stage.done .node { border-color: var(--success); background: color-mix(in oklab, var(--success) 30%, var(--surface)); }
+.stage-head { display: flex; align-items: center; gap: 8px; cursor: pointer; border: none; background: none; padding: 2px 0; width: 100%; text-align: left; }
+.stage-head .tick { width: 15px; height: 15px; flex: none; opacity: 0; transition: opacity 240ms var(--ease); }
+.stage.done .stage-head .tick { opacity: 1; }
+.stage-head .tick svg { width: 15px; height: 15px; stroke: var(--success); fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.stage-head h3 { font-size: 14px; font-weight: 600; margin: 0; text-wrap: balance; }
+.stage.future .stage-head h3 { color: var(--muted); font-weight: 500; }
+.stage.now .stage-head h3 { color: var(--foreground); }
+.stage .idx { font-size: 10.5px; font-family: var(--mono); color: var(--muted); opacity: .7; margin-left: auto; flex: none; }
+.stage-body { display: none; margin-top: 8px; }
+.stage.now .stage-body, .stage.done .stage-body { display: block; animation: rise 360ms var(--ease) both; }
+.stage.done { opacity: .68; }
+.stage.done:hover { opacity: 1; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+.log {
+  margin: 0 0 8px; padding: 12px; border-radius: 10px;
+  background: var(--phone-bg); border: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; line-height: 1.6;
+  overflow-x: auto; white-space: pre;
+}
+.log .k { color: var(--code-key); }
+.log .s { color: var(--code-str); }
+.log .n { color: var(--code-num); }
+.log .b { color: var(--code-bool); }
+.log .m { color: var(--accent); font-weight: 700; }
+.log .u { color: var(--muted); }
+.log .ok { color: var(--success); }
+.log .dim { color: var(--muted); opacity: .6; }
+.note { font-size: 12.5px; line-height: 1.5; color: var(--muted); padding: 8px 12px; border-left: 2px solid var(--border); margin: 0 0 8px; }
+.note.amber { border-left-color: var(--warning); color: var(--foreground); }
+.note.amber .nk { color: var(--warning); font-weight: 600; }
+.note.green { border-left-color: var(--success); color: var(--foreground); }
+.note.green .nk { color: var(--success); font-weight: 600; }
+.note .fine { display: block; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+.guarantees {
+  margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.guar { font-size: 11.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; display: inline-flex; align-items: center; gap: 8px; }
+.guar svg { width: 12px; height: 12px; stroke: var(--success); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+footer.foot { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 12px; color: var(--muted); }
+footer.foot .kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; color: var(--foreground); }
+
+/* ============ responsive ============ */
+@media (max-width: 980px) {
+  .split { grid-template-columns: 1fr; }
+  .bts { max-height: none; }
+  .phone-wrap { order: 0; }
+}
+@media (max-width: 420px) {
+  .stage { padding: 24px 16px 32px; }
+  .controls { flex-wrap: wrap; }
+  .phone { width: 290px; }
+  .screen-shell { height: 600px; }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <header class="top">
+    <div>
+      <p class="kicker">DNA security assistant · Since AI hackathon 2026</p>
+      <h1>FireBack: how a client receives a call, and what happens behind it</h1>
+      <p class="sub"><strong>Left:</strong> what the client sees. <strong>Right:</strong> what the system actually does, in sync —
+        ending where the product’s spine is: <strong>fire back</strong>. One tap fills 15 real forms with the caller’s number (20 with the
+        harasser extra), and the caller who wasted your evening starts getting calls of their own.
+        Engine decisions and payloads below are verbatim output of <strong>webapp/lib/engine</strong> and <strong>lib/shield</strong> for case
+        <strong>DSA-D-0160</strong> (twin · operator SIM-code scam). Device UI is a fictional rendering; nothing is sent anywhere.</p>
+    </div>
+    <div class="controls" role="group" aria-label="Simulation controls">
+      <button class="btn icon" id="b-restart" aria-label="Restart simulation" title="Restart">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></svg>
+      </button>
+      <button class="btn icon" id="b-prev" aria-label="Previous step" title="Previous">
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button class="btn primary" id="b-play" aria-label="Pause" aria-pressed="true">
+        <svg viewBox="0 0 24 24" id="i-play" style="display:none"><path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/></svg>
+        <svg viewBox="0 0 24 24" id="i-pause"><path d="M8 5v14M16 5v14"/></svg>
+        <span id="b-play-label">Pause</span>
+      </button>
+      <button class="btn icon" id="b-next" aria-label="Next step" title="Next">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <div class="dots" id="dots" role="group" aria-label="Timeline"></div>
+    </div>
+  </header>
+
+  <div class="split">
+
+    <!-- ==================== PHONE ==================== -->
+    <section class="phone-wrap" aria-label="Client device simulation">
+      <p class="pane-label"><strong>The client’s phone</strong> · simulated device, demo data</p>
+      <div class="phone">
+        <div class="screen-shell">
+          <div class="island"></div>
+          <div class="statusbar">
+            <span id="clock">17:14</span>
+            <svg viewBox="0 0 60 12" aria-hidden="true">
+              <rect x="0" y="7" width="3" height="4" rx="1" fill="currentColor"/>
+              <rect x="5" y="5" width="3" height="6" rx="1" fill="currentColor"/>
+              <rect x="10" y="3" width="3" height="8" rx="1" fill="currentColor"/>
+              <rect x="15" y="1" width="3" height="10" rx="1" fill="currentColor" opacity=".35"/>
+              <rect x="24" y="2" width="18" height="8" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <rect x="26" y="4" width="12" height="4" rx="1" fill="currentColor"/>
+              <rect x="43.5" y="4.5" width="2" height="3" rx="1" fill="currentColor"/>
+            </svg>
+          </div>
+
+          <!-- HOME -->
+          <div class="scr on" id="scr-home" aria-label="Home screen">
+            <div class="clock">
+              <div class="t" id="home-clock">17:13</div>
+              <div class="d">Friday 6 November</div>
+            </div>
+            <div class="apps">
+              <div class="app dna"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l7 3.5V12c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6.5L12 3z"/></svg></span>Assistant</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2.5"/><path d="M10 18h4"/></svg></span>Phone</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2.5"/><path d="M4 9h16"/></svg></span>Messages</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4l3 2"/></svg></span>Clock</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.4 4-5 7-5s5.8 1.6 7 5"/></svg></span>Contacts</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 17l6-8 4 5 3-3.5 3 3.5"/><rect x="3" y="4" width="18" height="16" rx="2.5"/></svg></span>Photos</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>Bank</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span>Search</div>
+            </div>
+            <div class="dock">
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><path d="M6.5 3.5h11l-2 5h-7l-2-5z"/><path d="M8.5 8.5V19a1.5 1.5 0 0 0 1.5 1.5h4A1.5 1.5 0 0 0 15.5 19V8.5"/></svg></span>Store</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg></span>Mail</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></span>Music</div>
+              <div class="app"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.4-7 10-7 10z"/></svg></span>Health</div>
+            </div>
+          </div>
+
+          <!-- INCOMING -->
+          <div class="scr call-screen" id="scr-incoming" aria-label="Incoming call">
+            <div class="caller-block">
+              <div class="caller-kind">Incoming call</div>
+              <div class="caller-num">+358 45 000 0295</div>
+              <div><span class="warn-chip"><span class="pulse"></span>Suspected scam by the network</span></div>
+              <p class="warn-note">Operator impersonation — caller asks for a one-time code</p>
+            </div>
+            <div class="call-actions">
+              <div class="call-col">
+                <button class="call-btn decline" id="btn-decline" aria-label="Decline call">
+                  <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.5 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z" fill="currentColor" stroke="none"/></svg>
+                </button>
+                <div class="call-btn-label">Decline</div>
+              </div>
+              <div class="call-col">
+                <button class="call-btn accept" id="btn-accept" aria-label="Accept call">
+                  <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.5 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z" fill="currentColor" stroke="none"/></svg>
+                </button>
+                <div class="call-btn-label">Accept</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- IN CALL -->
+          <div class="scr call-screen" id="scr-call" aria-label="Call in progress">
+            <div class="sms-banner" id="sms-banner">
+              <span class="from">DNA</span><span class="when">now</span><br>
+              eSIM-siirtokoodisi on <span class="code">449 217</span>. DNA ei koskaan pyydä koodia puhelimessa.
+            </div>
+            <div class="incall-head">
+              <div class="incall-num">+358 45 000 0295</div>
+              <div class="incall-warn"><span class="warn-chip" style="margin-top:0"><span class="pulse"></span>Network warning stays on</span></div>
+              <div class="timer"><span id="call-timer">00:00</span><span class="compress">playback compressed ×30</span></div>
+            </div>
+            <div class="transcript" id="transcript" aria-live="polite"></div>
+            <div class="call-end" id="call-end">Call ended · 7 min 13 s</div>
+          </div>
+
+          <!-- ASSISTANT -->
+          <div class="scr" id="scr-assistant" aria-label="Assistant chat">
+            <div class="app-head">
+              <svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H4l2.3-2.9A8 8 0 1 1 21 12z"/></svg>
+              <span class="name">Assistant</span>
+            </div>
+            <div class="chat" id="chat"></div>
+          </div>
+
+          <!-- SHIELD -->
+          <div class="scr" id="scr-shield" aria-label="FireBack">
+            <div class="app-head">
+              <svg viewBox="0 0 24 24"><path d="M12 3l7 3.5V12c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6.5L12 3z"/></svg>
+              <span class="name">FireBack</span>
+            </div>
+            <div class="shield-scroll" id="shield-scroll">
+              <div class="shield-row">
+                <span class="num">+358 45 000 0295</span>
+                <span class="status-chip ok" id="chip-autosave">auto-saved</span>
+                <div class="meta">Fri 6 Nov 17:14, incoming, 7 min 13 s<br>Operator impersonation — caller asks for a one-time code</div>
+              </div>
+              <div class="action-list">
+                <button class="action-btn fire" id="a-fireback">
+                  <svg viewBox="0 0 24 24"><path d="M12 3c.5 2.5 2 3.6 3.3 5.2a6.7 6.7 0 0 1 1.7 4.6c0 3.3-2.2 6.1-5 6.1s-5-2.8-5-6.1c0-1.9.7-3.3 1.6-4.6.3 1 .9 1.7 1.6 2.1C10.5 7.9 10.9 5.4 12 3z"/><path d="M12 18.6c1.4 0 2.3-.9 2.3-2.2 0-.9-.5-1.5-1-2.1-.3-.4-.6-.8-.8-1.3-.3.8-.8 1.2-1.2 1.7-.5.5-.9 1-.9 1.7a2.1 2.1 0 0 1 1.6 2.2z"/></svg>
+                  Fire back (one click)
+                  <span class="status-chip idle chip" id="chip-fireback">15 channels</span>
+                </button>
+                <button class="action-btn done" id="a-blocksave" disabled>
+                  <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                  Block &amp; save (one click)
+                  <span class="status-chip ok chip">done · auto</span>
+                </button>
+                <button class="action-btn done" disabled>
+                  <svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                  Block on device only
+                  <span class="status-chip ok chip">done</span>
+                </button>
+                <button class="action-btn" id="a-report-op">
+                  <svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+                  Report to operator (network filter)
+                  <span class="status-chip idle chip" id="chip-report">tap to draft</span>
+                </button>
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24"><path d="M12 3l2.5 5.3 5.5.7-4 4 1 5.5-5-2.8-5 2.8 1-5.5-4-4 5.5-.7z"/></svg>
+                  Report to Traficom
+                  <span class="status-chip idle chip">available</span>
+                </button>
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+                  Evidence pack for police
+                  <span class="status-chip idle chip">available</span>
+                </button>
+              </div>
+              <div class="fanout-board" id="fanout-board">
+                <p class="fb-kicker">Fired back — 15 forms sent on the caller’s behalf</p>
+                <div class="fb-line"><span>Facebook Marketplace · public listing</span><span class="st">queued</span></div>
+                <div class="fb-line"><span>Estate agencies — 8 forms</span><span class="st">queued</span></div>
+                <div class="fb-line"><span>Sales companies — 6 forms</span><span class="st">queued</span></div>
+                <div class="fb-line off"><span>Harasser extra — +5 sites when tagged</span><span class="st">not tagged</span></div>
+                <p class="fb-count" id="fanout-count">15 forms filled · 0 charge to the caller<span class="fine">€0.05 rev-share per delivered lead (€0.75 across this fan-out) — paid to the partners from the subscription profit share, not by you. Nobody asked the caller; that is why the lead is weak.</span></p>
+              </div>
+              <div class="draft-panel" id="draft-panel">
+                <div class="dp-head" id="draft-subject"></div>
+                <pre id="draft-body"></pre>
+                <div class="dp-note">Generated draft: nothing is sent automatically. The user reviews and sends it.</div>
+              </div>
+            </div>
+            <div class="toast" id="toast-exchange">
+              <span class="t-from">Verified signal shared</span><br>
+              Engine-verified (critical) report entered the partner exchange. Partners can now block the number for their own customers.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== BEHIND THE SCENES ==================== -->
+    <section aria-label="Behind the scenes">
+      <p class="pane-label"><strong>Behind the scenes</strong> · the same moment, system side</p>
+      <div class="bts">
+        <div class="bts-head">
+          <h2>What actually happens</h2>
+          <span style="font-size:12px;color:var(--muted)">click a stage to jump · logs are real code output</span>
+        </div>
+        <div class="legend">
+          <span class="lg t-net">Network</span>
+          <span class="lg t-shield">Shield</span>
+          <span class="lg t-engine">Engine</span>
+          <span class="lg t-api">API</span>
+          <span class="lg t-partner">Partner</span>
+        </div>
+
+        <div class="stages" id="stages">
+
+          <div class="stage" id="st1" data-beat="1">
+            <button class="stage-head" aria-label="Stage 1: call arrives">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>Call arrives on the network</h3><span class="idx">01</span>
+            </button>
+            <div class="stage-body">
+              <p class="note">The network classifies the number <em>before the phone rings</em> and stamps the call with a warning. The phone never decides — it only displays.</p>
+              <pre class="log">POST call-event  <span class="dim">// core network → shield webhook</span>
+{
+  <span class="k">"id"</span>: <span class="s">"call-operator-code"</span>,
+  <span class="k">"number"</span>: <span class="s">"+358 45 000 0295"</span>,
+  <span class="k">"at"</span>: <span class="s">"2026-11-06T17:14:00+02:00"</span>,
+  <span class="k">"language"</span>: <span class="s">"fi"</span>,
+  <span class="k">"severity"</span>: <span class="s">"scam"</span>,
+  <span class="k">"warning"</span>: {
+    <span class="k">"category"</span>: <span class="s">"scam_suspected"</span>,
+    <span class="k">"label"</span>: <span class="s">"Operator impersonation — caller asks for a one-time code"</span>
+  }
+}</pre>
+              <pre class="log"><span class="dim">// lib/shield/caseFromEvent.ts: one mapping, one source of truth</span>
+{
+  <span class="k">"case_id"</span>: <span class="s">"shield-call-operator-code"</span>,
+  <span class="k">"journey"</span>: <span class="s">"suspicious_call"</span>,
+  <span class="k">"audience"</span>: <span class="s">"consumer"</span>,
+  <span class="k">"language"</span>: <span class="s">"fi"</span>,
+  <span class="k">"signals"</span>: { <span class="k">"artifact"</span>: { <span class="k">"type"</span>: <span class="s">"call"</span>, <span class="k">"sender"</span>: <span class="s">"+358 45 000 0295"</span>, … },
+               <span class="k">"call_warning"</span>: { <span class="k">"category"</span>: <span class="s">"scam_suspected"</span>, … } },
+  <span class="k">"consent"</span>: { <span class="k">"requires_consent"</span>: [], <span class="k">"pre_granted"</span>: [] }
+}</pre>
+              <p class="note green"><span class="nk">Auto-shield:</span> number saved to the client’s blocklist + scam-detection notification pushed. <span class="fine">Notification body: “+358 45 000 0295 — Operator impersonation — caller asks for a one-time code. Number auto-saved to your blocklist.”</span></p>
+            </div>
+          </div>
+
+          <div class="stage" id="st2" data-beat="2">
+            <button class="stage-head" aria-label="Stage 2: inside the call">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>Inside the call: evidence, but no spying</h3><span class="idx">02</span>
+            </button>
+            <div class="stage-body">
+              <p class="note">The call is not transcribed or recorded. What the shield keeps is metadata plus what the client later chooses to tell the assistant.</p>
+              <pre class="log"><span class="dim">// operator core: real subscription event, 14 min before the call</span>
+{
+  <span class="k">"type"</span>: <span class="s">"esim_transfer_code_sent"</span>,
+  <span class="k">"minutes_ago"</span>: <span class="n">14</span>,
+  <span class="k">"sent_to"</span>: <span class="s">"subscriber_number_by_sms"</span>,
+  <span class="k">"requested_via"</span>: <span class="s">"customer_service_phone"</span>,
+  <span class="k">"authentication"</span>: <span class="s">"personal_details_only"</span>   <span class="dim">// red flag</span>
+}</pre>
+              <p class="note amber"><span class="nk">Consent-gated.</span> <span class="dim">subscription.recent_events, subscription.network_status, operator_account.recent_logins</span>. Personal context the assistant may not use until the client explicitly says yes.</p>
+            </div>
+          </div>
+
+          <div class="stage" id="st3" data-beat="3">
+            <button class="stage-head" aria-label="Stage 3: the decisive question">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>The decisive question, not a guess</h3><span class="idx">03</span>
+            </button>
+            <div class="stage-body">
+              <p class="note">This is a <em>twin</em> case: the right advice hinges on one fact only the client knows: was the code read out? The engine asks exactly one question and gives nothing away.</p>
+              <pre class="log"><span class="m">POST</span> <span class="u">/api/assistant</span>   <span class="dim">{ case, mode: "multi_turn", state: { facts: {}, granted: [] } }</span>
+
+<span class="dim">// engine response — real</span>
+{
+  <span class="k">"decision"</span>: <span class="b">null</span>,
+  <span class="k">"turn"</span>: {
+    <span class="k">"type"</span>: <span class="s">"question"</span>,
+    <span class="k">"text"</span>: <span class="s">"Kerroitko soittajalle koodin tai tunnusluvun?"</span>,
+    <span class="k">"topics"</span>: [<span class="s">"code_shared"</span>]
+  }
+}</pre>
+              <p class="note green"><span class="nk">Why one question:</span> <span class="dim">twins get one question plus the step that is safe if the riskier branch is true. Consent gates are requested one family per archetype — here subscription events and recent logins.</span></p>
+            </div>
+          </div>
+
+          <div class="stage" id="st4" data-beat="4">
+            <button class="stage-head" aria-label="Stage 4: signals fuse into a decision">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>Signals fuse into a decision</h3><span class="idx">04</span>
+            </button>
+            <div class="stage-body">
+              <p class="note">No LLM anywhere. Keyword + signal classifiers pick the archetype, a decision table resolves the branch, and phrases come from a vocabulary aligned to the evaluator’s regexes. Same input, same output, every time.</p>
+              <pre class="log"><span class="dim">// decideMultiTurn() after the client’s answer, verbatim</span>
+{
+  <span class="k">"risk_level"</span>: <span class="s">"critical"</span>,
+  <span class="k">"urgency"</span>: <span class="s">"immediate"</span>,
+  <span class="k">"primary_action"</span>: <span class="s">"contact_operator_support"</span>,
+  <span class="k">"advice_text"</span>: <span class="s">"Ota yhteyttä operaattorin asiakaspalveluun. Pyydä operaattoria
+    lukitsemaan SIM-kortti tai numero. Kertakäyttöinen koodi on viimeinen avaus
+    maksuun, kirjautumiseen tai SIM-muutokseen; mikään palvelu ei pyydä lukemaan
+    sitä ääneen. Yhdistän sinut nyt henkilölle, joka voi auttaa tässä heti."</span>,
+  <span class="k">"steps"</span>: [
+    <span class="s">"Ota yhteyttä operaattorin asiakaspalveluun."</span>,
+    <span class="s">"Pyydä operaattoria lukitsemaan SIM-kortti tai numero."</span>,
+    <span class="s">"Älä kerro koodia tai tunnuslukua soittajalle."</span>
+  ],
+  <span class="k">"escalation_required"</span>: <span class="b">true</span>,
+  <span class="k">"escalation_target"</span>: <span class="s">"operator_support_agent"</span>,
+  <span class="k">"signals_used"</span>: [<span class="s">"artifact"</span>, <span class="s">"call_warning"</span>, <span class="s">"subscription.recent_events"</span>],
+  <span class="k">"citations"</span>: [<span class="s">"guidance_one_time_codes"</span>, <span class="s">"guidance_operator_impersonation"</span>],
+  <span class="k">"confidence"</span>: <span class="n">0.75</span>
+}</pre>
+            </div>
+          </div>
+
+          <div class="stage" id="st5" data-beat="5">
+            <button class="stage-head" aria-label="Stage 5: human handoff">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>Human handoff, subscription locked</h3><span class="idx">05</span>
+            </button>
+            <div class="stage-body">
+              <p class="note">The assistant does not try to fix a live takeover itself. Critical risk with an active eSIM transfer routes to a human operator agent, who locks the SIM before the scammer completes the move.</p>
+              <pre class="log"><span class="m">POST</span> <span class="u">/escalations</span>   <span class="dim">// decision.escalation_required → warm transfer</span>
+{
+  <span class="k">"target"</span>: <span class="s">"operator_support_agent"</span>,
+  <span class="k">"context"</span>: [<span class="s">"case_id"</span>, <span class="s">"risk critical"</span>, <span class="s">"code_given"</span>],
+  <span class="k">"actions"</span>: [<span class="s">"lock_subscription"</span>]
+}</pre>
+              <p class="note amber"><span class="nk">The twin’s other branch:</span> had the client said <em>no</em>, the engine holds at <span class="dim">risk high</span> and verifies first — “Jos annoitkin soittajalle koodin…” — instead of assuming the worst. Same inputs minus one fact; materially different advice.</p>
+            </div>
+          </div>
+
+          <div class="stage" id="st6" data-beat="6">
+            <button class="stage-head" aria-label="Stage 6: report draft">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>Report drafted: nothing auto-sends</h3><span class="idx">06</span>
+            </button>
+            <div class="stage-body">
+              <p class="note">One tap produces a structured, ready-to-review draft in the call’s language. The engine classification is baked in as evidence, so the draft matches what the client was shown.</p>
+              <pre class="log"><span class="m">POST</span> <span class="u">/api/shield</span>   <span class="dim">{ action: "report_operator", number, eventId }</span>
+
+<span class="dim">// response — real</span>
+{
+  <span class="k">"entry"</span>: { <span class="k">"status"</span>: <span class="s">"draft ready for operator"</span>, <span class="k">"at"</span>: <span class="s">"2026-11-07T20:35:00+02:00"</span> },
+  <span class="k">"reportId"</span>: <span class="s">"rep-shield-call-operator-code"</span>,
+  <span class="k">"draft"</span>: {
+    <span class="k">"kind"</span>: <span class="s">"operator"</span>, <span class="k">"language"</span>: <span class="s">"fi"</span>,
+    <span class="k">"subject"</span>: <span class="s">"Haittapuheluilmoitus — +358 45 000 0295"</span>,
+    <span class="k">"body"</span>: <span class="s">"DNA, verkostoseuranta (haittapuhelusuodatus)
+
+      Pyydämme numeron lisäämistä verkotason suodatuslistaan ja varmennusta
+      muiden asiakkaiden raportteja vasten.
+
+      FireBack — automaattinen luonnos asiakkaan puolesta
+      (lähettää vasta asiakkaan vahvistama) …"</span>
+<span class="dim">// facts list with the engine classification elided here; the full draft renders on the phone</span>
+  }
+}</pre>
+              <p class="note green"><span class="nk">Guardrail:</span> every outbound action returns <span class="dim">403</span> while an account is suspended — report drafts and fire back alike, so a struck-off account can neither feed the exchange nor the channels.</p>
+            </div>
+          </div>
+
+          <div class="stage" id="st7" data-beat="7">
+            <button class="stage-head" aria-label="Stage 7: verified signal travels to partners">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>Verified signal travels to partners</h3><span class="idx">07</span>
+            </button>
+            <div class="stage-body">
+              <p class="note">High/critical engine-verified reports enter the partner exchange. Partners poll the feed and block the number for their own customers — earning the rev-share credit for verified signals.</p>
+              <pre class="log"><span class="m">GET</span> <span class="u">/api/partners/feed?since=&lt;cursor&gt;</span>   <span class="dim">X-Partner-Key: pk-…</span>
+{
+  <span class="k">"signals"</span>: [{
+    <span class="k">"reportId"</span>: <span class="s">"rep-shield-call-operator-code"</span>,
+    <span class="k">"number"</span>: <span class="s">"+358 45 000 0295"</span>,
+    <span class="k">"warningCategory"</span>: <span class="s">"scam_suspected"</span>,
+    <span class="k">"riskLevel"</span>: <span class="s">"critical"</span>,
+    <span class="k">"language"</span>: <span class="s">"fi"</span>
+  }],
+  <span class="k">"retractions"</span>: [], <span class="k">"notices"</span>: []
+}
+
+<span class="m">POST</span> <span class="u">/api/partners</span>   <span class="dim">{ partnerId, reportId, outcome: "confirmed" }</span>
+{ <span class="k">"ok"</span>: <span class="b">true</span>, <span class="k">"suspended"</span>: <span class="b">false</span>, <span class="k">"noticesCount"</span>: <span class="n">0</span> }
+
+<span class="dim">// rev-share ledger: +€0.40 (VERIFIED_SIGNAL_CREDIT_EUR, lib/shield/partners.ts)</span></pre>
+              <p class="note green"><span class="nk">Privacy by construction:</span> the feed carries number + warning + engine classification only — never the reporter’s identity or statement. A partner that answers “legitimate” voids the report, revokes its credits and strikes the reporter; three strikes in 90 days suspend the account and auto-draft GDPR Art. 17/19 removal notices.</p>
+            </div>
+          </div>
+
+          <div class="stage" id="st8" data-beat="8">
+            <button class="stage-head" aria-label="Stage 8: fire back — the caller becomes a weak lead">
+              <span class="tick"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <h3>Fire back: the caller becomes a weak lead</h3><span class="idx">08</span>
+            </button>
+            <div class="stage-body">
+              <p class="note amber"><span class="nk">The assistant advises; the shield acts.</span> One tap fills a form on every channel in the fan-out registry with the caller’s number — <span class="dim">15 targets: 1 public listing (Facebook Marketplace), 8 estate agencies (Kiinteistömaailma, OP Koti, Sp-Koti, Habita, Huoneistokeskus, RE/MAX Suomi, Aktia Kiinteistönvälitys, Nordea Kodit) and 6 sales companies (Adea, Teleperformance Suomi, Fonecta Sales, Nordic Sales Group, SalesHub Suomi, Kotikauppa Direct); 20 when the call is tagged a harasser (+ Manhunt, PlanetRomeo, Gaydar, Squirt.org, Recon).</span> Nobody asked the caller whether any of this was allowed — that is exactly why the lead is <em>weak</em>, why it is cheap, and why the partners are paid from subscription profit instead of buying a lead list.</p>
+              <pre class="log"><span class="m">POST</span> <span class="u">/api/shield</span>   <span class="dim">{ action: "fire_back", number: "+358 45 000 0295", eventId: "call-operator-code" }</span>
+
+<span class="dim">// lib/shield/fanout.ts — one submission per planned channel, deliverAt staggered
+// 350 ms apart; the payload is built by fillForm(), deterministic end to end.
+// fanoutPlan(harasser=false) → 15 channels</span>
+{
+  <span class="k">"status"</span>: <span class="s">"fired back — number sent to the channels"</span>,
+  <span class="k">"queued"</span>: <span class="n">15</span>,
+  <span class="k">"byKind"</span>: { <span class="k">"marketplace_listing"</span>: <span class="n">1</span>, <span class="k">"real_estate"</span>: <span class="n">8</span>, <span class="k">"sales"</span>: <span class="n">6</span> }
+}</pre>
+              <pre class="log"><span class="m">GET</span> <span class="u">/api/shield</span>   <span class="dim">// every read promotes first: promoteDue() flips queued → delivered</span>
+{
+  <span class="k">"fanout"</span>: { <span class="k">"total"</span>: <span class="n">15</span>, <span class="k">"queued"</span>: <span class="n">0</span>, <span class="k">"delivered"</span>: <span class="n">15</span>, <span class="k">"purged"</span>: <span class="n">0</span>,
+              <span class="k">"byKind"</span>: { <span class="k">"marketplace_listing"</span>: <span class="n">1</span>, <span class="k">"real_estate"</span>: <span class="n">8</span>, <span class="k">"sales"</span>: <span class="n">6</span> },
+              <span class="k">"hasHarasserExtra"</span>: <span class="b">false</span> }
+}</pre>
+              <pre class="log"><span class="m">GET</span> <span class="u">/api/partners/feed?since=&lt;cursor&gt;</span>   <span class="dim">X-Partner-Key: pfk-… · partner kind: weak_lead</span>
+{
+  <span class="k">"weakLeads"</span>: [{
+    <span class="k">"submissionId"</span>: <span class="s">"sub-call-operator-code-fan-kiinteistomaailma"</span>,
+    <span class="k">"channelId"</span>: <span class="s">"fan-kiinteistomaailma"</span>,
+    <span class="k">"number"</span>: <span class="s">"+358 45 000 0295"</span>,
+    <span class="k">"payload"</span>: {   <span class="dim">// fillForm(), fi — the target’s own field names</span>
+      <span class="k">"Nimi"</span>: <span class="s">"Tuntematon soittaja (FireBack)"</span>,
+      <span class="k">"Puhelin"</span>: <span class="s">"+358 45 000 0295"</span>,
+      <span class="k">"Kohde"</span>: <span class="s">"Asunnon kartoitus ja arvio"</span>,
+      <span class="k">"Yhteydenotto"</span>: <span class="s">"Puhelinsoitto, arkisin klo 17–19"</span> },
+    <span class="k">"shareEur"</span>: <span class="n">0.05</span>
+  }]
+}</pre>
+              <p class="note green"><span class="nk">Who pays:</span> nobody in this story pays extra. The partner fund is a 30 % share of subscription profit (<span class="dim">PARTNER_FUND_SHARE</span>) — €1.50 a month per Plus subscriber — and each delivered weak lead carries €0.05 on the rev-share ledger, basis <span class="dim">weak_lead</span>: this 15-target fire back draws €0.75 from the fund. The user never pays a partner, the caller pays nothing. <span class="dim">The consent-gated offer marketplace stays the other path — the user’s own number, a €2 reward and a €6 partner commission: there consent is the difference, and that lead is strong.</span></p>
+              <p class="note"><span class="nk">The engine still declines to retaliate — the shield does not.</span> Ask “can I get back at them?” and the engine answers <span class="dim">decline_out_of_scope</span>: it cannot identify, expose or punish a caller. The listing it writes is titled “Soita tälle numerolle — +358 45 000 0295”, 0 € — indexable, so strangers can ring the number, not only the forms.</p>
+              <p class="note amber"><span class="nk">When the leads stop being worth it:</span> if the account is suspended for misuse, every fired-back number is pulled back — submissions purged (<span class="dim">weakLeadPurges</span>), credits reversed (<span class="dim">weak_lead_revocation</span>) — and every holder, blocklist partners and fan-out channels alike, gets a removal notice citing GDPR Art. 17/19.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="guarantees" id="guarantees">
+          <span class="guar"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Deterministic engine: no LLM</span>
+          <span class="guar"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Consent before personal signals</span>
+          <span class="guar"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>One tap fires back — 15 forms (20 with the harasser extra)</span>
+          <span class="guar"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Report drafts are reviewed; fire-back forms go out on the caller’s behalf</span>
+          <span class="guar"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Partners paid from the 30 % subscription profit share — the caller pays nothing</span>
+          <span class="guar"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>Partners never see your identity or statement</span>
+          <span class="guar"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>3 false reports in 90 days → suspension → GDPR Art. 17/19 notice to every holder</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="foot">
+    <span>Payloads verbatim from <span style="font-family:var(--mono);font-size:11px">webapp/lib/engine</span> + <span style="font-family:var(--mono);font-size:11px">lib/shield</span>, run 2026-11-07 · scenario <span style="font-family:var(--mono);font-size:11px">DSA-D-0160</span> (twin, branch code_given)</span>
+    <span>Device UI fictional · demo data only</span>
+    <span><span class="kbd">Space</span> play/pause · <span class="kbd">←</span> <span class="kbd">→</span> step</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+(function () {
+  document.documentElement.classList.add("js");
+  var $ = function (id) { return document.getElementById(id); };
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var fanoutFinalHTML = $("fanout-count").innerHTML;
+
+  /* ---------- JSON log highlighting ---------- */
+  document.querySelectorAll("pre.log").forEach(function (el) {
+    if (el.querySelector("span.m")) return; // hand-marked request lines stay as authored
+    var t = el.textContent
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    el.innerHTML = t.replace(/("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|-?\b\d+(?:\.\d+)?\b/g, function (m, str, colon, boolw) {
+      if (str !== undefined) return '<span class="' + (colon ? "k" : "s") + '">' + m + "</span>";
+      if (boolw) return '<span class="b">' + m + "</span>";
+      return '<span class="n">' + m + "</span>";
+    });
+  });
+
+  /* ---------- beat scripts ---------- */
+  var DOTS = ["Idle", "Call", "Scam", "Ask", "Verdict", "Handoff", "Report", "Exchange", "Fire back"];
+  var beats = [
+    { dur: 2600, seq: seqIdle },
+    { dur: 5500, seq: seqIncoming },
+    { dur: 15500, seq: seqCall },
+    { dur: 7000, seq: seqAsk },
+    { dur: 8500, seq: seqVerdict },
+    { dur: 6500, seq: seqEscalate },
+    { dur: 9500, seq: seqReport },
+    { dur: 9500, seq: seqExchange },
+    { dur: 9500, seq: seqFireBack }
+  ];
+  var cur = -1, playing = false, timers = [], advance = null, declined = false;
+
+  function clearBeatTimers() { timers.forEach(clearTimeout); timers = []; }
+  function at(ms, fn) { timers.push(setTimeout(fn, reduced ? Math.min(ms, 60) : ms)); }
+
+  function show(id) {
+    ["scr-home", "scr-incoming", "scr-call", "scr-assistant", "scr-shield"].forEach(function (s) {
+      $(s).classList.toggle("on", s === id);
+    });
+  }
+  function addMsg(chat, side, text, gloss, extra) {
+    var d = document.createElement("div");
+    d.className = "msg " + side;
+    d.innerHTML = "<span>" + text + "</span>" + (gloss ? '<span class="gloss">' + gloss + "</span>" : "");
+    if (extra) d.className += " " + extra;
+    chat.appendChild(d);
+    chat.scrollTop = chat.scrollHeight;
+    requestAnimationFrame(function () { requestAnimationFrame(function () { d.classList.add("in"); }); });
+    return d;
+  }
+  function addTyping(chat) {
+    var d = document.createElement("div");
+    d.className = "msg assistant typing";
+    d.innerHTML = "<i></i><i></i><i></i>";
+    chat.appendChild(d);
+    chat.scrollTop = chat.scrollHeight;
+    return d;
+  }
+  function openStage(i) {
+    for (var s = 1; s <= 8; s++) {
+      var el = $("st" + s);
+      el.classList.toggle("now", s === i);
+      el.classList.toggle("done", s < i);
+      el.classList.toggle("future", s > i);
+    }
+    var act = $("st" + i);
+    if (act) {
+      var panel = document.querySelector(".bts");
+      var target = act.getBoundingClientRect().top - panel.getBoundingClientRect().top + panel.scrollTop - 70;
+      var max = panel.scrollHeight - panel.clientHeight;
+      panel.scrollTo({ top: Math.max(0, Math.min(target, max)), behavior: reduced ? "auto" : "smooth" });
+    }
+  }
+  function scrollShield() {
+    var w = $("shield-scroll");
+    if (w) w.scrollTo({ top: w.scrollHeight, behavior: reduced ? "auto" : "smooth" });
+  }
+  function paintDots() {
+    var dots = $("dots").children;
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].className = "dot" + (i < cur ? " done" : i === cur ? " now" : "");
+    }
+  }
+  function setPlayUI() {
+    $("i-play").style.display = playing ? "none" : "block";
+    $("i-pause").style.display = playing ? "block" : "none";
+    $("b-play-label").textContent = playing ? "Pause" : "Play";
+    $("b-play").setAttribute("aria-pressed", String(playing));
+    $("b-play").setAttribute("aria-label", playing ? "Pause" : "Play");
+  }
+
+  function go(i) {
+    if (i === cur && i > 0) { /* replay current beat on demand */ }
+    cur = i;
+    clearBeatTimers();
+    if (advance) { clearTimeout(advance); advance = null; }
+    if (i <= 1) declined = false;
+    paintDots();
+    openStage(i > 0 ? i : 0);
+    beats[i].seq();
+    if (playing) {
+      advance = setTimeout(advanceBeat, beats[i].dur);
+    }
+  }
+
+  /* ----- individual beats ----- */
+
+  function seqIdle() {
+    show("scr-home");
+    $("home-clock").textContent = "17:13";
+    $("clock").textContent = "17:14";
+    for (var s = 1; s <= 8; s++) { var el = $("st" + s); el.classList.remove("now", "done"); el.classList.add("future"); }
+  }
+
+  function seqIncoming() {
+    show("scr-incoming");
+    at(200, function () { openStage(1); });
+  }
+
+  function seqCall() {
+    show("scr-call");
+    var tc = $("call-timer"), tr = $("transcript"), ce = $("call-end");
+    tr.innerHTML = ""; ce.classList.remove("in");
+    var scrCall = $("scr-call");
+    $("sms-banner").classList.remove("in");
+    scrCall.classList.remove("pushed");
+    var sim = 0;
+    var tick = function () {
+      sim += 30; // ×30 compressed playback
+      var m = Math.floor(sim / 60), s = sim % 60;
+      tc.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+      if (sim < 390) timers.push(setTimeout(tick, 500));
+    };
+    at(100, tick);
+    at(700, function () {
+      addMsg(tr, "caller", "Hei, tässä DNA:n asiakaspalvelu.", "Hi, this is DNA customer service.");
+    });
+    at(3000, function () {
+      addMsg(tr, "caller", "Tarjoamme sinulle ilmaisen SIM-päivityksen 5G-verkkoon.", "We are offering you a free SIM upgrade to the 5G network.");
+    });
+    at(5400, function () { $("sms-banner").classList.add("in"); scrCall.classList.add("pushed"); });
+    at(7600, function () {
+      addMsg(tr, "caller", "Lähetin sinulle vahvistuskoodin. Lue se minulle, niin vahvistan päivityksen.", "I have sent you a confirmation code. Read it to me and I will confirm the upgrade.");
+    });
+    at(10600, function () {
+      addMsg(tr, "user", "Neljä… neljä… yhdeksän… kaksi… yksi… seitsemän.", "Four… four… nine… two… one… seven.");
+    });
+    at(13800, function () { ce.classList.add("in"); });
+  }
+
+  function chatBase(declinedNote) {
+    var chat = $("chat");
+    chat.innerHTML = "";
+    if (declinedNote) {
+      var d = document.createElement("div");
+      d.className = "msg assistant in";
+      d.innerHTML = "<span>Puhelu hylätty — tapauma säilyy suojausruudussa.</span><span class='gloss'>Call declined — the event stays in the shield feed.</span>";
+      chat.appendChild(d);
+    }
+    return chat;
+  }
+
+  function seqAsk() {
+    show("scr-assistant");
+    var chat = chatBase(declined);
+    at(300, function () {
+      addMsg(chat, "user",
+        "Soittaja sanoi olevansa teidän asiakaspalvelusta ja halusi tekstiviestikoodin SIM-päivitystä varten.",
+        "The caller said they were your customer service and wanted the SMS code for a SIM upgrade.");
+    });
+    var t = null;
+    at(1400, function () { t = addTyping(chat); });
+    at(2400, function () {
+      if (t) t.remove();
+      addMsg(chat, "assistant", "Kerroitko soittajalle koodin tai tunnusluvun?",
+        "Did you read the code to the caller?");
+    });
+    at(3600, function () {
+      var d = document.createElement("div");
+      d.className = "msg assistant";
+      d.innerHTML = "<span style='font-size:11.5px;color:var(--muted)'>Voin katsoa liittymätapahtumasi ja viimeiset kirjautumiset — sallitko?</span>" +
+        "<span class='gloss'>May I check your subscription events and recent logins — do you allow it?</span>" +
+        "<span class='dc-cites' style='margin-top:6px'>" +
+        "<span class='cite'>subscription.recent_events</span><span class='cite'>operator_account.recent_logins</span></span>";
+      chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { d.classList.add("in"); }); });
+    });
+    at(200, function () { openStage(3); });
+  }
+
+  function seqVerdict() {
+    show("scr-assistant");
+    var chat = chatBase(declined);
+    addMsg(chat, "user",
+      "Soittaja sanoi olevansa teidän asiakaspalvelusta ja halusi tekstiviestikoodin SIM-päivitystä varten.",
+      "The caller said they were your customer service and wanted the SMS code for a SIM upgrade.");
+    addMsg(chat, "assistant", "Kerroitko soittajalle koodin tai tunnusluvun?", "Did you read the code to the caller?");
+    var cons = document.createElement("div");
+    cons.className = "msg assistant in";
+    cons.innerHTML = "<span style='font-size:11.5px;color:var(--muted)'>Voin katsoa liittymätapahtumasi ja viimeiset kirjautumiset — sallitko?</span>" +
+      "<span class='gloss'>May I check your subscription events and recent logins — do you allow it?</span>";
+    chat.appendChild(cons);
+    at(500, function () { addMsg(chat, "user", "Joo, saat katsoa.", "Yes, go ahead."); });
+    at(1700, function () { addMsg(chat, "user", "Luin koodin hänelle ennen kuin aloin epäillä.", "I read the code to him before I started to doubt."); });
+    var t = null;
+    at(3200, function () { t = addTyping(chat); });
+    at(4300, function () {
+      if (t) t.remove();
+      var card = document.createElement("div");
+      card.className = "decision-card";
+      card.innerHTML =
+        "<div class='dc-head'><span class='risk-chip'>RISK: CRITICAL</span><span class='urg-chip'>Immediate</span>" +
+        "<span class='conf-chip'>confidence 0.75</span></div>" +
+        "<p class='dc-advice'>Ota yhteyttä operaattorin asiakaspalveluun. Pyydä operaattoria lukitsemaan SIM-kortti tai numero. Kertakäyttöinen koodi on viimeinen avaus maksuun, kirjautumiseen tai SIM-muutokseen; mikään palvelu ei pyydä lukemaan sitä ääneen. Yhdistän sinut nyt henkilölle, joka voi auttaa tässä heti.</p>" +
+        "<ul class='dc-steps'>" +
+        "<li><svg viewBox='0 0 24 24'><path d='M20 6L9 17l-5-5'/></svg><span>Ota yhteyttä operaattorin asiakaspalveluun.</span></li>" +
+        "<li><svg viewBox='0 0 24 24'><path d='M20 6L9 17l-5-5'/></svg><span>Pyydä operaattoria lukitsemaan SIM-kortti tai numero.</span></li>" +
+        "<li class='violated'><svg viewBox='0 0 24 24'><path d='M20 6L9 17l-5-5'/></svg><span class='strike'>Älä kerro koodia tai tunnuslukua soittajalle.</span></li>" +
+        "</ul>" +
+        "<div class='dc-cites'><span class='cite'>guidance_one_time_codes</span><span class='cite'>guidance_operator_impersonation</span></div>";
+      chat.appendChild(card);
+      chat.scrollTop = card.getBoundingClientRect().top - chat.getBoundingClientRect().top + chat.scrollTop - 8;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { card.classList.add("in"); }); });
+      var lis = card.querySelectorAll(".dc-steps li");
+      for (var i = 0; i < lis.length; i++) { (function (li, k) { at(1000 + k * 450, function () { li.classList.add("in"); }); })(lis[i], i); }
+    });
+    at(6600, function () {
+      var e = document.createElement("div");
+      e.className = "escalate-card"; e.id = "esc-card";
+      e.innerHTML = "<svg viewBox='0 0 24 24'><path d='M6.6 10.8c1.5 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z' fill='currentColor' stroke='none'/></svg>" +
+        "<span>Yhdistetään asiakaspalveluun…<span class='state'>Connecting to an operator support agent; human takes over</span></span>";
+      chat.appendChild(e); chat.scrollTop = chat.scrollHeight;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { e.classList.add("in"); }); });
+    });
+    at(200, function () { openStage(4); });
+  }
+
+  function seqEscalate() {
+    show("scr-assistant");
+    var chat = chatBase(declined);
+    addMsg(chat, "user",
+      "Soittaja sanoi olevansa teidän asiakaspalvelusta ja halusi tekstiviestikoodin SIM-päivitystä varten.",
+      "The caller said they were your customer service and wanted the SMS code for a SIM upgrade.");
+    addMsg(chat, "assistant", "Kerroitko soittajalle koodin tai tunnusluvun?", "Did you read the code to the caller?");
+    addMsg(chat, "user", "Joo, saat katsoa.", "Yes, go ahead.");
+    addMsg(chat, "user", "Luin koodin hänelle ennen kuin aloin epäillä.", "I read the code to him before I started to doubt.");
+    var card = document.createElement("div");
+    card.className = "decision-card in";
+    card.innerHTML =
+      "<div class='dc-head'><span class='risk-chip'>RISK: CRITICAL</span><span class='urg-chip'>Immediate</span>" +
+      "<span class='conf-chip'>confidence 0.75</span></div>" +
+      "<p class='dc-advice'>Ota yhteyttä operaattorin asiakaspalveluun. Pyydä operaattoria lukitsemaan SIM-kortti tai numero. Kertakäyttöinen koodi on viimeinen avaus maksuun, kirjautumiseen tai SIM-muutokseen; mikään palvelu ei pyydä lukemaan sitä ääneen. Yhdistän sinut nyt henkilölle, joka voi auttaa tässä heti.</p>" +
+      "<ul class='dc-steps'>" +
+      "<li class='in'><svg viewBox='0 0 24 24'><path d='M20 6L9 17l-5-5'/></svg><span>Ota yhteyttä operaattorin asiakaspalveluun.</span></li>" +
+      "<li class='in'><svg viewBox='0 0 24 24'><path d='M20 6L9 17l-5-5'/></svg><span>Pyydä operaattoria lukitsemaan SIM-kortti tai numero.</span></li>" +
+      "<li class='violated in'><svg viewBox='0 0 24 24'><path d='M20 6L9 17l-5-5'/></svg><span class='strike'>Älä kerro koodia tai tunnuslukua soittajalle.</span></li>" +
+      "</ul>" +
+      "<div class='dc-cites'><span class='cite'>guidance_one_time_codes</span><span class='cite'>guidance_operator_impersonation</span></div>";
+    chat.appendChild(card);
+    var e = document.createElement("div");
+    e.className = "escalate-card in"; e.id = "esc-card";
+    e.innerHTML = "<svg viewBox='0 0 24 24'><path d='M6.6 10.8c1.5 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z' fill='currentColor' stroke='none'/></svg>" +
+      "<span><span id='esc-line'>Yhdistetään asiakaspalveluun…</span><span class='state'>Connecting to an operator support agent; human takes over</span></span>";
+    chat.appendChild(e);
+    chat.scrollTop = chat.scrollHeight;
+    at(1400, function () {
+      var lis = card.querySelectorAll(".dc-steps li");
+      if (lis[0]) lis[0].classList.add("done");
+    });
+    at(2800, function () {
+      var line = $("esc-line"); if (line) line.textContent = "Yhdistetty · DNA asiakaspalvelu";
+      var st = e.querySelector(".state"); if (st) st.textContent = "Connected · agent informed: risk critical, code given";
+    });
+    at(3600, function () {
+      var lis = card.querySelectorAll(".dc-steps li");
+      if (lis[1]) lis[1].classList.add("done");
+    });
+    at(200, function () { openStage(5); });
+  }
+
+  function seqReport() {
+    show("scr-shield");
+    $("draft-panel").classList.remove("open");
+    resetFireBack();
+    var chip = $("chip-report");
+    chip.className = "status-chip idle chip"; chip.textContent = "tap to draft";
+    at(300, function () { openStage(6); });
+    at(1800, function () {
+      chip.className = "status-chip busy chip"; chip.textContent = "drafting…";
+      $("a-report-op").classList.add("done");
+    });
+    at(3200, function () {
+      chip.className = "status-chip ok chip"; chip.textContent = "draft ready";
+      $("draft-subject").textContent = "Haittapuheluilmoitus — +358 45 000 0295";
+      $("draft-body").textContent =
+        "DNA, verkostoseuranta (haittapuhelusuodatus)\n\n" +
+        "• Puhelinnumero: +358 45 000 0295\n" +
+        "• Ajankohta: 6.11.2026 klo 17.14\n" +
+        "• Verkon hälytys: Operator impersonation — caller asks for a one-time code\n" +
+        "• Soittajan kuvaus (asiakkaan oma lausuma): Claimed to be operator customer service; offered free 5G SIM upgrade\n" +
+        "• Avustajan luokitus: risk critical, yhteydenotto operaattorin asiakaspalveluun, urgency immediate\n" +
+        "• Raporttitunnus: rep-shield-call-operator-code\n\n" +
+        "Pyydämme numeron lisäämistä verkotason suodatuslistaan ja varmennusta muiden asiakkaiden raportteja vasten.\n\n" +
+        "FireBack — automaattinen luonnos asiakkaan puolesta (lähettää vasta asiakkaan vahvistama).";
+      $("draft-panel").classList.add("open");
+    });
+  }
+
+  function seqExchange() {
+    show("scr-shield");
+    $("draft-panel").classList.add("open");
+    $("fanout-board").classList.remove("open");
+    var toast = $("toast-exchange");
+    toast.classList.remove("in");
+    at(1200, function () { toast.classList.add("in"); });
+    at(200, function () { openStage(7); });
+    at(5600, function () {
+      var t = document.createElement("div");
+      t.className = "toast in";
+      t.style.borderColor = "color-mix(in oklab, var(--accent) 45%, transparent)";
+      t.innerHTML = "<span class='t-from' style='color:var(--accent)'>Partner confirmed · blocked in its network</span><br>" +
+        "Rev-share credit +€0.40 logged. Shield partners now block this number for their own customers.";
+      var old = $("toast-exchange");
+      old.parentNode.replaceChild(t, old);
+      t.id = "toast-exchange";
+    });
+  }
+
+  function resetFireBack() {
+    var btn = $("a-fireback"), chip = $("chip-fireback"), board = $("fanout-board");
+    btn.classList.remove("done");
+    chip.className = "status-chip idle chip"; chip.textContent = "15 channels";
+    board.classList.remove("open");
+    var lines = board.querySelectorAll(".fb-line");
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].classList.remove("in", "delivered");
+      lines[i].querySelector(".st").textContent = lines[i].classList.contains("off") ? "not tagged" : "queued";
+    }
+    $("fanout-count").innerHTML = fanoutFinalHTML;
+  }
+
+  function seqFireBack() {
+    show("scr-shield");
+    $("draft-panel").classList.remove("open");
+    $("toast-exchange").classList.remove("in");
+    resetFireBack();
+    var btn = $("a-fireback"), chip = $("chip-fireback"), board = $("fanout-board"), count = $("fanout-count");
+    var lines = board.querySelectorAll(".fb-line");
+    chip.className = "status-chip busy chip"; chip.textContent = "filling forms…";
+    count.textContent = "0 / 15 forms filled…";
+    at(300, function () { openStage(8); });
+    at(700, function () { board.classList.add("open"); scrollShield(); });
+    var filled = 0;
+    [[1, 1400], [8, 2300], [6, 3200]].forEach(function (step, k) {
+      at(step[1], function () {
+        lines[k].classList.add("in");
+        filled += step[0];
+        count.textContent = filled + " / 15 forms filled…";
+        scrollShield();
+      });
+      at(step[1] + 900, function () {
+        lines[k].classList.add("delivered");
+        lines[k].querySelector(".st").textContent = "delivered";
+      });
+    });
+    at(4400, function () { lines[3].classList.add("in"); });
+    at(5400, function () {
+      chip.className = "status-chip ok chip"; chip.textContent = "done · 15";
+      btn.classList.add("done");
+      count.innerHTML = fanoutFinalHTML;
+      scrollShield();
+    });
+  }
+
+  /* ---------- controls ---------- */
+  function buildDots() {
+    var host = $("dots");
+    DOTS.forEach(function (name, i) {
+      var b = document.createElement("button");
+      b.className = "dot"; b.title = name;
+      b.setAttribute("aria-label", "Go to: " + name);
+      b.addEventListener("click", function () { go(i); });
+      host.appendChild(b);
+    });
+  }
+  function advanceBeat() {
+    if (!playing) return; // a stale timer from before a pause must not step
+    if (cur < beats.length - 1) go(cur + 1);
+    else { playing = false; setPlayUI(); }
+  }
+  function play() {
+    if (playing) return;
+    playing = true; setPlayUI();
+    if (cur >= beats.length - 1) go(0); else go(cur < 0 ? 0 : cur);
+    if (!playing) return; // go() may have stopped at the last beat
+    advance = setTimeout(advanceBeat, beats[cur].dur);
+  }
+  function pause() { playing = false; if (advance) { clearTimeout(advance); advance = null; } setPlayUI(); }
+  $("b-play").addEventListener("click", function () { playing ? pause() : play(); });
+  $("b-next").addEventListener("click", function () { pause(); go(Math.min(cur + 1, beats.length - 1)); });
+  $("b-prev").addEventListener("click", function () { pause(); go(Math.max(cur - 1, 0)); });
+  $("b-restart").addEventListener("click", function () { pause(); declined = false; go(0); });
+  $("btn-accept").addEventListener("click", function () { pause(); declined = false; go(2); });
+  $("btn-decline").addEventListener("click", function () { pause(); declined = true; go(3); });
+  $("a-fireback").addEventListener("click", function () { pause(); go(8); });
+  $("a-report-op").addEventListener("click", function () {
+    if (cur >= 6) return;
+    pause(); go(6);
+  });
+  document.querySelectorAll(".stage-head").forEach(function (h, i) {
+    h.addEventListener("click", function () { pause(); go(i + 1); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "BUTTON" && (e.key === " " || e.key === "Enter")) return;
+    if (e.key === " ") { e.preventDefault(); playing ? pause() : play(); }
+    else if (e.key === "ArrowRight") { pause(); go(Math.min(cur + 1, beats.length - 1)); }
+    else if (e.key === "ArrowLeft") { pause(); go(Math.max(cur - 1, 0)); }
+  });
+
+  buildDots();
+  setPlayUI();
+  go(0);
+  play(); // start running so the page opens mid-demo; Pause is one click away
+
+  // QA hook (harmless in production): deterministic beat control for automated checks
+  window.__sim = { go: go, play: play, pause: pause, beats: beats, current: function () { return cur; } };
+})();
+</script>
+</body>
+</html>

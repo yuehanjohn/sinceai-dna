@@ -1,4 +1,4 @@
-// Demo call events for the /shield Call Shield demo flow.
+// Demo call events for the /shield FireBack demo flow.
 // Adapted from info/data/samples/five_journeys.jsonl (suspicious_call journey, DSA-D-0160).
 
 export interface CallWarningInfo {
@@ -12,9 +12,16 @@ export interface CallEvent {
   /** ISO timestamp of the (simulated) call. */
   at: string;
   language: "fi" | "en" | "sv";
-  severity: "scam" | "benign";
+  /** "harasser" = nuisance caller worth the extra fan-out (see channels.ts):
+   * also signed up where 99.99 % of harassers' counterparts are. */
+  severity: "scam" | "harasser" | "benign";
   warning?: CallWarningInfo;
   notes: string;
+}
+
+/** A harasser call gets the extra channel group, a scam call the standard set. */
+export function isHarasserEvent(event: CallEvent): boolean {
+  return event.severity === "harasser";
 }
 
 export const DEMO_CALL_EVENTS: CallEvent[] = [
@@ -47,5 +54,15 @@ export const DEMO_CALL_EVENTS: CallEvent[] = [
     warning: { category: "spam", label: "Flagged as spam by the network filter" },
     notes:
       "Soitti kaksi kertaa ja jätti vastaajaviestin: terveysasema muistuttaa tulevasta ajanvarauksesta. Soittaja esiintyi klinikan nimellä ja numero on julkisessa luettelossa.",
+  },
+  {
+    id: "call-harasser",
+    number: "+358 50 000 0777",
+    at: "2026-11-06T19:41:00+02:00",
+    language: "fi",
+    severity: "harasser",
+    warning: { category: "spam", label: "Repeat unknown caller — third time today, no message" },
+    notes:
+      "Sama numero soitti jo kolmannen kerran tänään eikä jättänyt viestiä. Luurissa on hiljaista, välillä taustalta kuuluu baari. Ärsyttävä häirikkösoittelija — palautanko koston vai tyydynkö estämään?",
   },
 ];

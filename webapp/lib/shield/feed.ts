@@ -7,6 +7,7 @@
 // withdrawn. Two audiences, one endpoint, strictly separated by partner kind.
 
 import { DEMO_CALL_EVENTS } from "../callEvents";
+import { WEAK_LEAD_SHARE_EUR } from "./channels";
 import { exchangeableReports } from "./misuse";
 import { activeGrantsForPartner } from "./leads";
 import type { PartnerInfo } from "./partners";
@@ -47,6 +48,25 @@ export interface FeedLeadRevocation {
   at: string;
 }
 
+/** A fired-back number delivered to a weak-lead partner, with the form as filled. */
+export interface FeedWeakLead {
+  submissionId: string;
+  reportId: string;
+  number: string;
+  channelId: string;
+  sharedAt: string;
+  deliveredAt: string;
+  language: string;
+  payload: Record<string, string>;
+  shareEur: number;
+}
+
+export interface FeedWeakLeadPurge {
+  submissionId: string;
+  number: string;
+  at: string;
+}
+
 export interface PartnerFeedDelta {
   partner: { id: string; name: string; role: string; kind: PartnerInfo["kind"] };
   generatedAt: string;
@@ -57,6 +77,8 @@ export interface PartnerFeedDelta {
   notices: RemovalNotice[];
   leads: FeedLead[];
   leadRevocations: FeedLeadRevocation[];
+  weakLeads: FeedWeakLead[];
+  weakLeadPurges: FeedWeakLeadPurge[];
 }
 
 /** ISO timestamps can carry different offsets — compare as instants. */
@@ -75,6 +97,8 @@ export function buildFeed(s: ShieldStoreState, partner: PartnerInfo, since: stri
   let retracted: FeedRetraction[] = [];
   let leads: FeedLead[] = [];
   let leadRevocations: FeedLeadRevocation[] = [];
+  let weakLeads: FeedWeakLead[] = [];
+  let weakLeadPurges: FeedWeakLeadPurge[] = [];
 
   if (partner.kind === "shield") {
     const confirmedIds = new Set(
@@ -110,6 +134,29 @@ export function buildFeed(s: ShieldStoreState, partner: PartnerInfo, since: stri
           (r.riskLevel === "high" || r.riskLevel === "critical"),
       )
       .map((r) => ({ reportId: r.id, number: r.number, at: r.voidedAt as string }));
+  }
+
+  if (partner.kind === "weak_lead") {
+    // Weak leads: the numbers a user fired back, with the form exactly as it was
+    // filled. Unconsented by the caller — that is why the partner is paid from
+    // subscription profit instead of paying for the lead.
+    const mine = s.submissions.filter((sub) => sub.channelId === partner.id);
+    weakLeads = mine
+      .filter((sub) => sub.status === "delivered" && after(sub.deliverAt, since))
+      .map((sub) => ({
+        submissionId: sub.id,
+        reportId: sub.reportId,
+        number: sub.number,
+        channelId: sub.channelId,
+        sharedAt: sub.createdAt,
+        deliveredAt: sub.deliverAt,
+        language: s.reports.find((r) => r.id === sub.reportId)?.language ?? "en",
+        payload: sub.payload,
+        shareEur: WEAK_LEAD_SHARE_EUR,
+      }));
+    weakLeadPurges = mine
+      .filter((sub) => sub.purgedAt && after(sub.purgedAt, since))
+      .map((sub) => ({ submissionId: sub.id, number: sub.number, at: sub.purgedAt as string }));
   }
 
   if (partner.kind === "marketplace") {
@@ -149,5 +196,7 @@ export function buildFeed(s: ShieldStoreState, partner: PartnerInfo, since: stri
     notices,
     leads,
     leadRevocations,
+    weakLeads,
+    weakLeadPurges,
   };
 }

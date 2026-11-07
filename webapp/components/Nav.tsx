@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Home" },
+  { href: "/shield", label: "Fire back" },
   { href: "/assistant", label: "Assistant" },
-  { href: "/shield", label: "Call Shield" },
   { href: "/offers", label: "Offers" },
   { href: "/pricing", label: "Pricing" },
   { href: "/partners", label: "Partners" },
@@ -19,11 +19,9 @@ export default function Nav() {
   return (
     <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--background)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-3">
-        <Link
-          href="/"
-          className="text-sm font-semibold tracking-tight text-[var(--foreground)]"
-        >
-          DNA Security Assistant
+        <Link href="/" className="text-xl font-bold tracking-tight">
+          <span className="text-[var(--error)]">Fire</span>
+          <span className="text-[var(--warning)]">Back</span>
         </Link>
         <div className="flex flex-wrap items-center gap-1">
           {links.map((l) => {

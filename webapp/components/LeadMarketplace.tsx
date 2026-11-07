@@ -116,9 +116,9 @@ export default function LeadMarketplace() {
       <div>
         <h3 className="font-medium">Verified offers — share your number, your choice</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Pick a partner, share your own number once, and earn service credit. Withdraw anytime:
-          the lead is voided and the partner receives a formal purge notice (GDPR Art. 7(3),
-          17(1)(b), 19). Numbers you report as scams never enter this marketplace.
+          Pick a partner, share your own number once, earn credit. Withdraw anytime: the lead is
+          voided and the partner gets a purge notice (GDPR Art. 7(3), 17(1)(b), 19). Reported scam
+          numbers never enter here.
         </p>
       </div>
 

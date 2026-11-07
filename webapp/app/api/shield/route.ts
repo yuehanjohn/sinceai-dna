@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decideSingleTurn } from "@/lib/engine/decide";
-import { DEMO_CALL_EVENTS } from "@/lib/callEvents";
+import { DEMO_CALL_EVENTS, isHarasserEvent } from "@/lib/callEvents";
 import { caseFromEvent } from "@/lib/shield/caseFromEvent";
+import { fireBack, promoteDue, submissionsForEvent, summarize } from "@/lib/shield/fanout";
 import { draftFor } from "@/lib/shield/reports";
 import { mutate, readState, standingOf } from "@/lib/shield/store";
 import { DEMO_ACTOR_ID } from "@/lib/shield/types";
@@ -13,6 +14,7 @@ import type {
   ShieldActionEntry,
   ShieldActionId,
   ShieldStoreState,
+  Submission,
 } from "@/lib/shield/types";
 
 export const dynamic = "force-dynamic";
@@ -21,18 +23,21 @@ const ALLOWED_ACTIONS: Record<ShieldActionId, true> = {
   block_device: true,
   save_number: true,
   block_and_save: true,
+  fire_back: true,
   report_operator: true,
   report_traficom: true,
   evidence_pack: true,
 };
 
 const OUTBOUND_ACTIONS: Partial<Record<ShieldActionId, true>> = {
+  fire_back: true,
   report_operator: true,
   report_traficom: true,
   evidence_pack: true,
 };
 
 const KIND_BY_ACTION: Partial<Record<ShieldActionId, ReportKind>> = {
+  fire_back: "operator",
   report_operator: "operator",
   report_traficom: "traficom",
   evidence_pack: "police",
@@ -42,6 +47,7 @@ const ACTION_STATUS: Record<ShieldActionId, string> = {
   block_device: "blocked on device",
   save_number: "saved to blocklist",
   block_and_save: "blocked and saved",
+  fire_back: "blocked, saved and fired back to the channels",
   report_operator: "draft ready for operator",
   report_traficom: "draft ready for Traficom",
   evidence_pack: "evidence pack ready for police",
@@ -51,6 +57,7 @@ interface ShieldPostResult {
   entry: ShieldActionEntry;
   reportId?: string;
   draft?: ReportDraft;
+  submissions?: Submission[];
 }
 
 function upsertSaved(s: ShieldStoreState, number: string, eventId: string, actorId: string, auto: boolean): void {
@@ -155,13 +162,38 @@ export async function POST(req: NextRequest) {
       };
       s.actions.push(entry);
 
-      if (action === "save_number" || action === "block_and_save") {
+      if (action === "save_number" || action === "block_and_save" || action === "fire_back") {
         upsertSaved(s, number, eventId, actorId, auto);
+      }
+      if (action === "fire_back") {
+        // One tap does the whole job, so the log records the block too.
+        s.actions.push({
+          id: crypto.randomUUID(),
+          action: "block_device",
+          number,
+          eventId,
+          actorId,
+          status: ACTION_STATUS.block_device,
+          at: now,
+        });
       }
 
       const kind = KIND_BY_ACTION[action];
       if (kind) {
         const { record, draft } = createReport(s, { number, eventId, actorId, kind, now });
+        if (action === "fire_back") {
+          const event = DEMO_CALL_EVENTS.find((e) => e.id === eventId)!;
+          const submissions = fireBack(s, {
+            actorId,
+            number,
+            eventId,
+            reportId: record.id,
+            language: event.language,
+            harasser: isHarasserEvent(event),
+            now,
+          });
+          return { error: null, result: { entry, reportId: record.id, draft, submissions } };
+        }
         return { error: null, result: { entry, reportId: record.id, draft } };
       }
       return { error: null, result: { entry } };
@@ -175,12 +207,22 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** GET /api/shield — persisted action log, saved numbers and the account standing. */
-export async function GET() {
+/** GET /api/shield — persisted action log, saved numbers, fired-back submissions
+ * and the account standing. Promotes scheduled deliveries first, so a poll
+ * watches the fan-out land. */
+export async function GET(req: NextRequest) {
+  const eventId = req.nextUrl.searchParams.get("eventId");
+  const now = new Date().toISOString();
+  await mutate((s) => promoteDue(s, now));
   const s = await readState();
+  const mine = eventId
+    ? submissionsForEvent(s, eventId, DEMO_ACTOR_ID)
+    : s.submissions.filter((sub) => sub.actorId === DEMO_ACTOR_ID);
   return NextResponse.json({
     entries: s.actions,
     saved: s.saved.filter((n) => n.actorId === DEMO_ACTOR_ID),
+    submissions: mine,
+    fanout: summarize(mine),
     standing: standingOf(s, DEMO_ACTOR_ID),
   });
 }

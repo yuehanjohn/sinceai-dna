@@ -7,6 +7,7 @@
 
 import { DEMO_PARTNERS, isVerifiedReport } from "./partners";
 import { revokeConsent } from "./leads";
+import { holdersOf, purgeSubmissions } from "./fanout";
 import { removalNotice } from "./reports";
 import type {
   PartnerOutcome,
@@ -51,6 +52,8 @@ export interface MisuseResult {
   suspended: boolean;
   notices: RemovalNotice[];
   creditsRevoked: boolean;
+  /** Fired-back numbers pulled back from the sales channels on suspension. */
+  submissionsPurged: number;
 }
 
 /**
@@ -59,7 +62,7 @@ export interface MisuseResult {
  * - "legitimate": the number is verified as legitimate → false-report strike for
  *   the reporter, revocation of any credits paid for this report, and if the
  *   strike limit is reached: suspension + removal notices for every number the
- *   reporter has reported.
+ *   reporter has reported, plus a purge of every fired-back number.
  */
 export function applyPartnerOutcome(
   s: ShieldStoreState,
@@ -72,7 +75,7 @@ export function applyPartnerOutcome(
   s.outcomes.push(outcome);
 
   if (outcome.outcome === "confirmed") {
-    return { outcome, strikeAdded: null, suspended: false, notices: [], creditsRevoked: false };
+    return { outcome, strikeAdded: null, suspended: false, notices: [], creditsRevoked: false, submissionsPurged: 0 };
   }
 
   // Legitimate: void the report so it stops feeding the partner exchange.
@@ -111,7 +114,13 @@ export function applyPartnerOutcome(
         number: r.number,
         reportId: r.id,
         reporterId: r.reporterId,
-        partnerIds: DEMO_PARTNERS.filter((p) => p.kind === "shield").map((p) => p.id),
+        // Everyone holding the number is addressed: the blocklist partners AND
+        // every sales channel the number was fired back to. A purged weak lead
+        // must not survive as a name in somebody's CRM.
+        partnerIds: [
+          ...DEMO_PARTNERS.filter((p) => p.kind === "shield").map((p) => p.id),
+          ...holdersOf(s, r.number, r.reporterId),
+        ],
         language: r.language,
         reason: "account_suspended_for_misuse",
         at: now,
@@ -119,6 +128,10 @@ export function applyPartnerOutcome(
       s.notices.push(notice);
       notices.push(notice);
     }
+    // Pull back every fired-back number: submissions purged, weak-lead rev-share
+    // lines reversed for the channels that had already been paid.
+    const purged = purgeSubmissions(s, { actorId: report.reporterId, now });
+    anyRevoked = purged.creditsRevoked || anyRevoked;
     // Pull back the account's marketplace privileges too: every active lead
     // consent is withdrawn, its lead voided economically, and the holding
     // partner receives a consent-withdrawal purge notice.
@@ -128,10 +141,17 @@ export function applyPartnerOutcome(
         notices.push(notice);
       }
     }
-    return { outcome, strikeAdded: strike, suspended: true, notices, creditsRevoked: anyRevoked };
+    return {
+      outcome,
+      strikeAdded: strike,
+      suspended: true,
+      notices,
+      creditsRevoked: anyRevoked,
+      submissionsPurged: purged.submissions.length,
+    };
   }
 
-  return { outcome, strikeAdded: strike, suspended: false, notices: [], creditsRevoked };
+  return { outcome, strikeAdded: strike, suspended: false, notices: [], creditsRevoked: false, submissionsPurged: 0 };
 }
 
 /** Reports eligible for the partner exchange feed (verified, not voided). */
